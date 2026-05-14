@@ -51,7 +51,7 @@ It is not a starter kit. It is a reference architecture with templates. Teams im
 ## Recommended reading order
 
 {: .note }
-> Read [Power Platform Landing Zones](https://github.com/microsoft/industry/tree/main/foundations/powerPlatform) → **GovFlow** (this site) → [LP-ALM](https://devonaleshiremsft.github.io/layered-platform-alm/) → [Power Platform Well-Architected](https://learn.microsoft.com/en-us/power-platform/well-architected/)
+> Read [Power Platform Adoption Framework](https://learn.microsoft.com/en-us/power-platform/guidance/adoption/methodology) → [Power Platform Landing Zones](https://github.com/microsoft/industry/tree/main/foundations/powerPlatform) → **GovFlow** (this site) → [LP-ALM](https://devonaleshiremsft.github.io/layered-platform-alm/) → [Power Platform Well-Architected](https://learn.microsoft.com/en-us/power-platform/well-architected/)
 
 1. **[Getting Started](getting-started/)** — First 30-day priorities, key decisions, prerequisites
 2. **[Enterprise Strategy — GCC High / DoD](enterprise-strategy/)** — Full environment topology, security architecture, governance model, ALM strategy, operational support, and implementation roadmap for large-scale DoD organizations
