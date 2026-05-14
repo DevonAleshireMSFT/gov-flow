@@ -1,0 +1,1105 @@
+---
+layout: default
+title: Enterprise Strategy — GCC High / DoD
+nav_order: 8
+permalink: /enterprise-strategy/
+---
+
+# Enterprise Power Platform Environment Strategy and Governance
+## A Recommendation for Large-Scale DoD Organizations — GCC High / IL5
+
+**Audience:** Senior Leadership · Enterprise Architects · Platform Administrators · Security & Compliance Teams · Program Managers · Governance Boards
+
+**Classification Applicability:** CUI / IL5 workloads in GCC High tenants. Does not cover SIPRNet or TS/SCI. Consult your AO for classified enclave requirements.
+
+**Well-Architected Alignment:** This document maps recommendations to the five [Power Platform Well-Architected](https://learn.microsoft.com/en-us/power-platform/well-architected/) pillars — **Security**, **Reliability**, **Operational Excellence**, **Performance Efficiency**, and **Experience Optimization** — with emphasis on the constraints that constrained-cloud environments impose on each pillar.
+
+---
+
+## Table of Contents
+
+1. [Executive Summary](#1-executive-summary)
+2. [Recommended Environment Strategy](#2-recommended-environment-strategy)
+3. [Security & Compliance Architecture](#3-security--compliance-architecture)
+4. [Governance Model](#4-governance-model)
+5. [ALM / DevSecOps Strategy](#5-alm--devsecops-strategy)
+6. [Operational Support Model](#6-operational-support-model)
+7. [Leadership Reporting & Metrics](#7-leadership-reporting--metrics)
+8. [Recommended Enterprise Standards](#8-recommended-enterprise-standards)
+9. [Risks & Anti-Patterns](#9-risks--anti-patterns)
+10. [Final Recommended Strategy](#10-final-recommended-strategy)
+
+---
+
+## 1. Executive Summary
+
+### 1.1 Recommended Strategy
+
+A large-scale DoD Power Platform deployment — Army, Navy, or USMC scale — cannot be governed by the same model used for a 50-person commercial enterprise. The combination of strict ATO requirements, personnel churn, classification boundaries, and mission-criticality of some workloads demands a **federated governance model**: centralized platform ownership with decentralized, governed development.
+
+The recommended approach is:
+
+> **One GCC High tenant per branch/agency. One Platform Center of Excellence (CoE) team owning the platform layer. Managed Environments enforced organization-wide. Application development federated to program and command teams within a defined governance framework. LP-ALM used as the standard ALM methodology for all pro-developer workloads.**
+
+This is not a recommendation to lock down everything. It is a recommendation to build the guardrails that allow hundreds of teams to build safely and independently without creating organizational debt that becomes unmanageable at year three.
+
+### 1.2 Why This Approach Works for DoD-Scale Organizations
+
+Commercial Power Platform guidance routinely underestimates two realities of large government organizations:
+
+1. **Personnel turnover destroys undocumented systems.** Applications owned by a single person — with no source control, no documentation, no service accounts — become unrecoverable when that person PCS's or retires. At Army scale, this is not a hypothetical; it is the norm.
+
+2. **ATO requirements are non-negotiable but vary by program.** A logistics tracking app and a commander's dashboard require different ATOs, different data handling requirements, and potentially different environment isolation. A one-size governance model fails both.
+
+The federated model addresses both: documentation and ALM discipline are enforced by the platform; isolation boundaries and ATO scope are program-controlled.
+
+### 1.3 Primary Goals and Expected Outcomes
+
+| Goal | Outcome |
+|---|---|
+| ATO-supportable architecture | Every production environment has documented access control, DLP policy, audit logging, and solution inventory |
+| Separation of duties | No individual has development, approval, and deployment rights simultaneously |
+| Sustainable ownership | Every application has a documented owner team, service account, and ALM pipeline — not a person |
+| Scalable governance | Governance processes do not require the CoE team to be in the critical path for every deployment |
+| Cost visibility | Platform leadership can report licensing costs, environment count, and utilization per command |
+
+### 1.4 Well-Architected Pillar Summary
+
+| Pillar | Primary Focus in This Document |
+|---|---|
+| **Security** | RBAC, BU hierarchy, DLP, IL5 constraints, identity, separation of duties |
+| **Reliability** | Environment isolation, managed solutions, rollback strategy, DR |
+| **Operational Excellence** | ALM pipelines, DevSecOps, observability, CoE tooling |
+| **Performance Efficiency** | Environment sizing, Dataverse capacity, scaling strategy |
+| **Experience Optimization** | Governance that enables rather than blocks; fusion team model |
+
+---
+
+## 2. Recommended Environment Strategy
+
+> **Well-Architected:** Security (segmentation), Operational Excellence (deployment confidence), Reliability (isolation)
+
+### 2.1 Tenant Segmentation
+
+**One GCC High tenant per branch/agency is the recommended model.** Running multiple GCC High tenants within a single organizational branch (e.g., one for FORSCOM and one for TRADOC within Army) creates federation complexity that eliminates most of the platform-level governance benefits.
+
+Cross-command isolation within a single tenant is achieved through:
+- Managed Environments with environment-level access control
+- Business Unit segmentation within Dataverse environments
+- DLP policies scoped to environment groups
+- Azure AD / Entra group ownership per command
+
+> **IL5 consideration:** Not all workloads in a GCC High tenant run at IL5. IL5 authorization requires a DISA provisional authorization and specific Dataverse environment configuration. Separate IL5-designated environments from general-purpose environments within the same tenant. Mixing IL5 and non-IL5 workloads in the same environment is not authorized.
+
+### 2.2 Eight-Tier Environment Model
+
+The following topology is the recommended baseline for an organization with multiple commands and multiple development teams:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                     GCC HIGH TENANT                             │
+│                                                                 │
+│  ┌─────────────────┐  ┌─────────────────────────────────────┐  │
+│  │  PLATFORM TIER  │  │         SHARED SERVICES TIER        │  │
+│  │                 │  │                                     │  │
+│  │  CoE-Admin      │  │  SharedSvc-Prod                     │  │
+│  │  CoE-Dev        │  │  SharedSvc-Dev                      │  │
+│  └─────────────────┘  └─────────────────────────────────────┘  │
+│                                                                 │
+│  ┌─────────────────────────────────────────────────────────┐    │
+│  │              PROGRAM / COMMAND TIERS (per program)      │    │
+│  │                                                         │    │
+│  │  {CMD}-{PGM}-Sandbox  (self-service, 30-day lifecycle)  │    │
+│  │  {CMD}-{PGM}-Dev      (team dev + integration)          │    │
+│  │  {CMD}-{PGM}-Test     (SIT / UAT)                       │    │
+│  │  {CMD}-{PGM}-Prod     (production)                      │    │
+│  └─────────────────────────────────────────────────────────┘    │
+│                                                                 │
+│  ┌─────────────────────────────────────────────────────────┐    │
+│  │              INDIVIDUAL DEVELOPER TIER (optional)       │    │
+│  │  {USER}-Dev   (personal dev, provisioned on demand)     │    │
+│  └─────────────────────────────────────────────────────────┘    │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+| Tier | Count | Owner | Lifecycle | IL5 Eligible |
+|---|---|---|---|---|
+| CoE Admin | 1 | Platform CoE | Permanent | No |
+| CoE Dev | 1 | Platform CoE | Permanent | No |
+| Shared Services Dev | 1–2 | Platform CoE | Permanent | Conditional |
+| Shared Services Prod | 1 | Platform CoE | Permanent | Conditional |
+| Program Sandbox | 1 per program | Program team | 30–90 days | No |
+| Program Dev | 1 per program | Program team | Permanent while ATO active | Yes |
+| Program Test | 1 per program | Program team | Permanent while ATO active | Yes |
+| Program Prod | 1 per program | Program PM + CoE | Permanent while ATO active | Yes |
+| Individual Dev | On demand | Individual developer | Provisioned/deprovisioned per project | No |
+
+### 2.3 Centralized vs. Decentralized Environments
+
+**Centralize:** Platform governance tools (CoE Starter Kit), shared component libraries, enterprise connector configurations, and cross-cutting security templates. These belong in the CoE or Shared Services tiers owned by the Platform CoE team.
+
+**Decentralize:** Application development, testing, and production. Each program owns its environment lifecycle, subject to the governance standards enforced at the tenant level.
+
+**Never centralize production.** A single "enterprise production" environment for multiple programs creates blast radius risk, ATO scope contamination, and change management bottlenecks. Reject any proposal to consolidate production environments across programs.
+
+### 2.4 How Many Production Environments
+
+One production environment per program/application portfolio that has a distinct ATO boundary. Programs that share an ATO may share a production environment. Programs with separate ATOs must have separate production environments — ATO scope leakage is a compliance failure, not a preference.
+
+At Army scale, expect 50–200+ production environments over a 3–5 year maturity period. This is expected and manageable with Managed Environments and proper governance tooling.
+
+### 2.5 Environment Naming Standard
+
+```
+{ORG}-{COMMAND}-{PROGRAM}-{TYPE}
+```
+
+Examples:
+```
+ARMY-FORSCOM-SYSTRK-DEV
+ARMY-FORSCOM-SYSTRK-TEST
+ARMY-FORSCOM-SYSTRK-PROD
+NAVY-NETC-TRNMGR-DEV
+USMC-MARFORCOM-LOGTRACK-PROD
+PLATFORM-COE-ADMIN
+PLATFORM-SHAREDSVC-PROD
+```
+
+Rules:
+- All caps. No spaces. Hyphens as delimiters.
+- Maximum 40 characters (Power Platform display name limit).
+- `{ORG}` = branch abbreviation (ARMY, NAVY, USMC, SOCOM, etc.)
+- `{COMMAND}` = major command abbreviation (FORSCOM, TRADOC, NETC, MARFORCOM)
+- `{PROGRAM}` = 4–8 character program code; matches Azure DevOps project name
+- `{TYPE}` = DEV, TEST, PROD, SANDBOX, ADMIN (not abbreviations — be explicit)
+
+### 2.6 Environment Lifecycle Management
+
+**Sandbox environments** are the highest-risk category for sprawl. Enforce:
+- Maximum 90-day lifecycle (hard-delete via Power Platform admin API on expiry)
+- No production data of any classification
+- No ATO coverage — explicitly excluded from ATO boundary documentation
+- Provisioned through a self-service form (Power Apps + Approval flow in CoE-Admin) requiring manager approval
+
+**Dev and Test environments** are permanent for the life of the program's ATO. When a program completes:
+1. Export final solution artifacts to source control
+2. Document environment inventory in the program's decommission record
+3. Delete environments within 30 days of program end
+4. Revoke service principal credentials within 24 hours
+
+**Production environment deletion** requires ISSO sign-off, data disposal documentation per NIST 800-88, and CoE review board approval.
+
+### 2.7 Environment Request and Approval Process
+
+```
+Developer/PM submits request (Power Apps form in CoE-Admin)
+        ↓
+Automated checks: naming compliance, ATO documentation attached,
+                  data classification declared, owner designated
+        ↓
+CoE Architecture Review (< 5 business days for standard; 
+                           < 2 days for sandbox)
+        ↓
+ISSO review for IL5-designated environments (additional 5 days)
+        ↓
+Automated provisioning via Power Platform Admin API / PAC CLI
+        ↓
+Service principal created and registered in environment register
+        ↓
+Owner team notified with onboarding checklist
+```
+
+Do not build this process in email. The request, approval, provisioning, and notification should all be automated through a CoE intake application. Manual email-based processes do not scale past 20 programs.
+
+### 2.8 Managed Environments
+
+Activate Managed Environments for **all** non-sandbox environments. Managed Environments provide:
+- Sharing limits (restrict canvas app sharing to security groups only)
+- Solution checker enforcement on import
+- Weekly environment activity digest for the CoE
+- Maker welcome content (onboarding guidance for developers)
+- IP firewall (available in GCC High — use for IL5 environments)
+- Pipelines (Power Platform Pipelines as an alternative to ADO for citizen developer deployments)
+
+In GCC High, Managed Environments are available and FedRAMP authorized. Activate at the tenant level by default.
+
+---
+
+## 3. Security & Compliance Architecture
+
+> **Well-Architected:** Security (all five principles), Reliability (availability protection)
+
+### 3.1 RBAC Strategy
+
+DoD Power Platform RBAC has three layers that must be designed together:
+
+```
+Layer 1: Entra ID / Azure AD Groups
+         ↓ controls access to environments and Managed Environments features
+Layer 2: Dataverse Security Roles
+         ↓ controls what a user can see and do within an environment
+Layer 3: Field Security Profiles
+         ↓ controls access to specific sensitive columns within a table
+```
+
+Each layer is independently necessary. Skipping Layer 3 for CUI fields is a compliance gap — column-level sensitivity requires field security profiles, not just table-level security roles.
+
+**The RBAC pyramid for a program environment:**
+
+```
+         ┌──────────────────┐
+         │  System Admin    │  → CoE service principal only
+         ├──────────────────┤
+         │  Program Admin   │  → Program PM + designated ISSO
+         ├──────────────────┤
+         │  Contributor     │  → Developers (Dev only)
+         ├──────────────────┤
+         │  Support         │  → L2 support team (Test + Prod)
+         ├──────────────────┤
+         │  Read Only       │  → Auditors, reporting users
+         ├──────────────────┤
+         │  End User        │  → Mission personnel (Prod)
+         └──────────────────┘
+```
+
+**Non-negotiable RBAC rules for DoD:**
+- System Administrator role is assigned to the **pipeline service principal only** — not to any human user in Test or Prod
+- No human user holds System Administrator in production
+- The `Contributor` role (with write privileges) is **only available in Dev** — Test and Prod users are read-only or end-user role only
+- Role assignments are through **Entra ID security groups** — never individual user assignment in Test or Prod
+
+### 3.2 Business Unit Strategy
+
+Business Unit (BU) design is the most commonly misarchitected element in large government Power Platform deployments. Two failure modes dominate:
+
+**Failure Mode 1 — Flat BU (everything in root):** Eliminates BU-level security isolation. All Dataverse records are accessible to root BU members. At DoD scale, this means a FORSCOM user can query TRADOC records if they hold the same security role. Unacceptable for CUI.
+
+**Failure Mode 2 — Over-granular BU (one BU per team):** Creates a hierarchy that no one understands, breaks Append/Append To privileges systematically, and requires security role duplication at every level. This collapses under its own complexity within 18 months.
+
+**Recommended BU hierarchy (3 levels maximum):**
+
+```
+Root BU (tenant)
+  ├── Command BU  (FORSCOM, TRADOC, NETC, MARFORCOM)
+  │     ├── Program BU  (SYSTRK, TRNMGR, LOGTRACK)
+```
+
+Rules:
+- Dataverse Owner Teams are always provisioned at the **Program BU level** — not root, not command
+- Owner teams use "Direct User (Basic) access level and Team privileges" — not Business Unit level
+- Cross-BU data sharing is done through explicit team membership, not BU elevation
+- Audit the BU hierarchy annually — unused BUs accumulate and create administrative debt
+
+### 3.3 Dataverse Security Model
+
+Dataverse security is table-level by default, column-level by exception.
+
+**Standard table access pattern:**
+
+| Access Level | Record Ownership | Use Case |
+|---|---|---|
+| User | Individual | Personal drafts, individual workload items |
+| Team | Owner Team | Shared program records (most CUI data) |
+| Business Unit | BU | Command-level reference data |
+| Organization | All users in environment | Lookup tables, reference data (non-CUI) |
+
+**For IL5 environments:** Default to Team-level record ownership. Organization-level access for any table containing CUI requires ISSO approval and documentation in the ATO.
+
+**Append and Append To** privileges must be explicitly set for every relationship a security role traverses. This is the single most common source of "it works in Dev but breaks in Test" failures. Every security role must be tested against a relationship traversal matrix before promotion to production. Use the security role matrix template in [docs/security-role-matrix-template.md](/security-roles/).
+
+### 3.4 DLP Policy Architecture
+
+A flat, single DLP policy for an entire GCC High tenant does not work at DoD scale. The recommended DLP architecture has three policy tiers:
+
+**Tier 1 — Tenant Default Policy (most restrictive)**
+- Applies to all environments not covered by Tier 2 or 3
+- Non-business connectors blocked entirely
+- Microsoft 365 connectors (SharePoint, Teams, Exchange) in Business group
+- All third-party connectors in Non-business (blocked)
+- No exceptions without architecture review
+
+**Tier 2 — Managed Environment Policies (per environment group)**
+- Overrides Tier 1 for approved environment groups
+- Dev/Test environments may allow additional connectors (Azure Gov services, approved APIs)
+- Production environments are more restrictive than Dev, not less
+- GCC High limitation: some commercial connectors are not available — validate each connector against the [GCC High connector availability list](https://learn.microsoft.com/en-us/power-platform/admin/powerapps-us-government) before approving
+
+**Tier 3 — Program Exception Policy**
+- Rare. Requires ISSO approval, documented business justification, and 90-day review cycle
+- Never allows connectors that route data to commercial cloud from a GCC High environment
+- HTTP connector requires specific endpoint allowlisting — not open HTTP
+
+> **IL5 critical:** Connectors that route data through Microsoft commercial infrastructure are not authorized in IL5 environments. Validate every connector's data residency documentation before approving in an IL5 DLP policy.
+
+### 3.5 Identity and Access Management
+
+**Entra ID Groups Strategy:**
+
+| Group Type | Naming Pattern | Purpose |
+|---|---|---|
+| Environment Owners | `PP-{ENV}-Owners` | Manage environment settings; assigned Program Admin role |
+| Environment Users | `PP-{ENV}-Users` | All licensed users of an environment |
+| Developers | `PP-{ENV}-Developers` | Contributor role in Dev only |
+| App Users | `PP-{ENV}-{AppCode}-Users` | End-user role for specific apps |
+| Support | `PP-{ENV}-Support` | Support role in Test and Prod |
+| Pipeline SP | N/A — service principal | System Administrator for pipeline deployments only |
+
+**Never use mail-enabled distribution lists for Power Platform access.** Dynamic security groups based on HR system attributes (department, command, position) are preferred for end-user populations — they self-maintain through personnel transitions.
+
+**Service Principals (Pipeline Automation):**
+- One service principal per environment tier (Dev, Test, Prod)
+- System Administrator role granted to SP only
+- Secret rotation on a 90-day schedule, automated where possible
+- SP credentials stored in Azure Key Vault (Azure Government) — not in ADO variable groups as plaintext
+- SP access is audited monthly
+
+**Service Accounts vs. Personal Accounts:**
+In DoD environments, agency IAM policy sometimes prohibits provisioning non-human service accounts. This is a real constraint. See [LP-ALM.md Section 3.5](/methodology/#35-gcc-high-and-fedramp-specific-configurations) for the decision table on how to handle this per environment tier.
+
+### 3.6 Conditional Access
+
+GCC High Entra ID supports Conditional Access. Required policies for IL5:
+
+- **MFA required** for all Power Platform access — no exceptions
+- **Compliant device required** for production environment access (STIG-compliant device baseline)
+- **Location-based restrictions** — CONUS-only access policy for production environments; exceptions require ISSO-approved named location
+- **Sign-in risk policy** — block high-risk sign-ins to production environments
+- **Session controls** — app-enforced restrictions for Power Apps access (prevent download/print of CUI)
+
+Conditional Access policies are maintained by the command IAM team, not the Power Platform CoE. The CoE provides requirements; IAM implements. This separation of duties is intentional.
+
+### 3.7 Audit Logging and Monitoring
+
+Power Platform audit events flow to Microsoft Purview (available in GCC High). Required for ATO:
+
+- **Unified Audit Log** enabled for the tenant — captures Power Apps opens, flow runs, Dataverse record modifications
+- **Dataverse activity logging** enabled per environment — table-level audit trails for CUI tables
+- **Log retention** minimum 1 year hot, 6 years cold (per NARA schedule 2 for federal records)
+- **SIEM integration** — route audit logs to the command SIEM (typically Splunk or Microsoft Sentinel on Azure Government) via Event Hub in Azure Government
+
+> **GCC High limitation:** Log export requires Azure Government (not commercial Azure) Event Hub and Storage Account. Ensure all log routing stays within the GCC High / Azure Government boundary.
+
+### 3.8 Common Security Mistakes at DoD Scale
+
+1. **Granting System Administrator to human users "just in case"** — this nullifies every other security control. System Admin sees everything. In production, no human holds System Admin.
+
+2. **Building a 40-role security model** — complex security models are not reviewed during ATOs; they are rubber-stamped. A complex model that nobody understands is less secure than a simple model that is actively maintained. Five roles per application maximum.
+
+3. **Ignoring Append and Append To** — relationships between tables require both privileges. The default "create a role and assign basic read/write" misses relationship traversal. Test every role against every relationship in the data model.
+
+4. **Using one environment for Dev and Test** — Dev and Test in one environment means managed solutions can't be tested, deployment pipelines can't be validated, and the ATO boundary is ambiguous. Separate them.
+
+5. **Flat BU with no owner teams** — results in every record being organization-owned. All users with the security role see all records. For CUI data, this is a compliance failure.
+
+---
+
+## 4. Governance Model
+
+> **Well-Architected:** Operational Excellence (development standards, fusion culture), Experience Optimization (enabling adoption)
+
+### 4.1 Platform Governance Board
+
+The Platform Governance Board (PGB) is the decision authority for the Power Platform tenant. It is not a gating committee for every deployment — it is the body that sets policy and resolves exceptions.
+
+**Composition:**
+- **Chair:** Enterprise Architect or CTO/CIO designee
+- **Platform CoE Lead:** Technical authority for platform standards
+- **ISSO Representative:** Security and compliance sign-off
+- **Command Representatives:** 1 per major command (rotating)
+- **Program Manager Representative:** Program community voice
+
+**Cadence:** Monthly standing meeting (30 minutes). Exception reviews are async via the intake system — the PGB meeting addresses only policy changes and escalations.
+
+**Decision authority:**
+| Decision | Authority |
+|---|---|
+| New production environment | PGB approval |
+| New IL5 environment | PGB + ISSO approval |
+| DLP policy exception | PGB + ISSO approval |
+| New connector approval | Platform CoE Lead |
+| Architecture exception | Platform CoE Lead + ISSO for security exceptions |
+| Program onboarding | Platform CoE Lead |
+| Sandbox provisioning | Automated (self-service) |
+
+### 4.2 Application Classification Model
+
+Every application must be classified before production deployment. Classification determines the ATO path, environment tier requirements, and support model.
+
+| Class | Description | ATO Requirement | ALM Requirement |
+|---|---|---|---|
+| **Mission Critical** | Failure directly impacts mission execution or life safety | Full ATO, IL5 mandatory review, annual pen test | LP-ALM mandatory, full pipeline, load tested |
+| **Business Critical** | Significant business impact if unavailable | ATO required, quarterly security review | LP-ALM mandatory, full pipeline |
+| **Standard** | Normal business application | ATO required | LP-ALM recommended, pipeline required |
+| **Citizen / Low-Code** | Departmental productivity, non-CUI | ATO not required; DLP coverage sufficient | Solution export to source control minimum |
+
+Classification is **declared by the program PM**, reviewed by the ISSO, and recorded in the environment register. Reclassification upward (e.g., Citizen → Standard) requires environment reprovisioning — do not deploy Mission Critical applications into environments provisioned for Citizen apps.
+
+### 4.3 Data Classification Approach
+
+Map directly to DoD data classification:
+
+| Power Platform Handling | DoD Classification |
+|---|---|
+| No field security, org-level access | Unclassified, non-CUI (public) |
+| Team-level records, DLP tier 1 | Unclassified, non-sensitive |
+| Field security profiles, DLP tier 2, IL4 | CUI (Controlled Unclassified Information) |
+| Separate IL5 environment, restricted Conditional Access | CUI requiring IL5 handling |
+| **Not supported in Power Platform** | Secret / TS / SAP |
+
+Power Platform is not authorized for Secret or higher. Any application that might aggregate data to Secret classification through combination must be reviewed by the AO before deployment.
+
+### 4.4 Intake and Review Process
+
+The intake process must be fully automated. Manual email-based intake at DoD scale means requests fall through the cracks, governance records are incomplete, and ATO evidence collection fails.
+
+**Automated intake application (built in CoE-Admin environment):**
+
+```
+1. Program team submits request (Power Apps form)
+   Fields: program name, command, data classification, app class,
+           estimated users, requested environments, ATO POC,
+           owner name + DoD ID, ISSO name
+
+2. Automated validation:
+   - Naming standards check
+   - Data classification / app class consistency check
+   - ISSO lookup confirmation
+   - Licensing capacity check
+
+3. Routing:
+   - Sandbox → auto-approve, auto-provision within 1 hour
+   - Standard/Citizen Dev → CoE review (2 business days)
+   - Business Critical or higher → CoE review + ISSO review (5 days)
+   - IL5 → PGB approval required
+
+4. Provisioning (automated on approval):
+   - Environment created via Power Platform Admin API
+   - Service principal created and registered
+   - Entra ID groups created and documented
+   - ADO project created if LP-ALM pipeline required
+   - Owner team notified with onboarding checklist link
+```
+
+### 4.5 Fusion Team Model
+
+DoD programs typically have a technology gap: trained software engineers are rare; Power Platform citizen developers are common; the gap between them is where problems occur. The fusion team model addresses this.
+
+**Recommended fusion team composition per program:**
+
+| Role | Responsibilities | Skills |
+|---|---|---|
+| **Platform Champion** | Liaison between program and Platform CoE; owns the environment register; runs intake requests | Business + platform admin |
+| **Pro Developer** | Designs data model, writes plugins, owns pipeline, enforces LP-ALM | Full-stack + Power Platform |
+| **App Developer** | Builds canvas apps, Power Automate flows with guidance from Pro Developer | Power Platform intermediate |
+| **Citizen Developer** | Builds personal/team productivity apps in approved citizen environments | Power Platform beginner |
+| **ISSO** | Reviews security role design, signs off on ATO artifacts | Security |
+
+The pro developer is the quality gate for the fusion team. They own source control, review all solution exports before commit, and are accountable for the ALM pipeline. They are **not** the bottleneck — they set the standards that allow the team to move independently.
+
+### 4.6 Citizen Development Governance
+
+Citizen development is not ungoverned development. At DoD scale, citizen apps that escape governance become shadow IT that no one can support, audit, or decommission.
+
+**Citizen governance controls:**
+- Citizen developers work only in **approved citizen environments** with the most restrictive DLP tier
+- All citizen apps that handle CUI must be reviewed by the program ISSO before going to production — no exceptions
+- Citizen apps that reach 20+ users are automatically escalated for pro developer review (tracked via CoE Starter Kit telemetry)
+- Annual citizen app review: all apps older than 12 months with no activity in 60 days are quarantined (not deleted — quarantined) pending owner confirmation
+
+### 4.7 Avoiding Governance Bottlenecks
+
+The CoE team is not a delivery team — it is a standards-setting, tooling, and exception-handling team. Governance bottlenecks occur when the CoE is in the critical path for every deployment. Prevent this by:
+
+- **Self-service sandbox provisioning** — CoE is not involved
+- **Pipeline automation** — deployments to Test and Prod are pipeline-gated, not CoE-reviewed individually
+- **Pre-approved patterns** — the component placement decision tree and LP-ALM methodology are pre-approved architecture; teams that follow them do not need architecture review for individual solutions
+- **Exception-only escalation** — the intake process routes only genuine exceptions to the CoE; standard requests auto-approve against checklist
+- **Annual governance review, not per-release review** — mature programs review governance quarterly; new programs get monthly touchpoints for the first 6 months
+
+---
+
+## 5. ALM / DevSecOps Strategy
+
+> **Well-Architected:** Operational Excellence (all five principles), Reliability (safe deployments, rollback), Security (secure development lifecycle)
+
+### 5.1 LP-ALM as the Enterprise Standard
+
+LP-ALM (Layered Power Platform ALM) is the recommended ALM methodology for all pro-developer workloads in the enterprise. It provides:
+
+- A five-layer decomposition model that separates security, schema, configuration, automation, and UI into independently deployable solution artifacts
+- A defined pipeline architecture for GCC High
+- A source control structure compatible with Azure DevOps
+- Explicit handling of the `_Config` layer (never committed, always manual)
+
+All Mission Critical and Business Critical applications must adopt LP-ALM. Standard applications should adopt LP-ALM. Citizen applications are exempt but must export solutions to source control at minimum.
+
+See the [LP-ALM Methodology](/methodology/) for the full reference.
+
+### 5.2 Azure DevOps Integration
+
+**GCC High requires self-hosted agents.** Microsoft-hosted agents are not available in the GCC High ADO cloud. Every organization operating in GCC High must maintain a pool of self-hosted build agents.
+
+**Self-hosted agent requirements:**
+- Windows Server 2022 recommended (PAC CLI requires .NET)
+- PAC CLI installed and pinned to a known-good version (update deliberately, not automatically)
+- `--cloud UsGovHigh` flag must be present in all `pac auth create` commands
+- Agent VMs hosted in Azure Government, not commercial Azure
+- Agent pool segmented by classification: one pool for IL5 environments, one for standard
+- Agent service account is not a personal account — dedicated managed identity or service account
+
+**ADO project structure:**
+
+```
+ADO Organization
+  └── {COMMAND}-Platform (CoE pipelines, shared templates)
+  └── {COMMAND}-{PROGRAM} (one ADO project per program)
+        ├── Repos:    {prefix}-powerplatform (Power Platform solutions)
+        │             {prefix}-azure-infra (if Azure integration exists)
+        ├── Pipelines: deploy-security, deploy-core, deploy-automation,
+        │              deploy-ui, deploy-all, pr-validation
+        ├── Variable Groups: {PREFIX}-Common, {PREFIX}-Test, {PREFIX}-Prod
+        └── Environments: Test, Prod (with approval gates)
+```
+
+### 5.3 CI/CD Pipeline Architecture
+
+```
+PR → pr-validation.yml
+     ├── Pack all layers (managed)
+     ├── Solution checker (enforce Critical: 0, High: 0)
+     ├── Schema contamination check (_UI must not contain Entities/)
+     └── _Config guard (must not exist in source)
+
+Merge to main → deploy-all.yml (to Test)
+     ├── deploy-security
+     ├── deploy-core
+     ├── [CONFIG GATE — ManualValidation, 4-hour timeout]
+     ├── deploy-automation
+     └── deploy-ui
+
+Release tag → deploy-all.yml (to Prod)
+     ├── deploy-security
+     ├── deploy-core
+     ├── [CONFIG GATE — ManualValidation, 24-hour timeout]
+     ├── [PROD APPROVAL — Reviewer: Program PM + ISSO]
+     ├── deploy-automation
+     └── deploy-ui
+```
+
+**Config Gate:** The manual validation gate exists because `_Config` (environment variables, connection references) cannot be automated. The gate forces a human to apply `_Config` before automation and UI deploy. This is not a process gap — it is an intentional security control. Connection reference credentials and endpoint URLs must never be in source control.
+
+**Solution Checker enforcement:** In GCC High, the solution checker runs against the GCC High endpoint. Do not suppress Critical or High findings. Zero Critical, Zero High is the production gate. Medium findings require documented acceptance before merge.
+
+### 5.4 Branching Strategy
+
+```
+main          → Production-ready code. Direct push prohibited.
+               Only merges via PR with at least 1 reviewer.
+
+release/vX.Y  → Release candidate branch. Created from main.
+               Deployment to Prod triggers from this branch.
+
+feature/{name} → Developer feature branches. Branched from main.
+                PR to main required. At least 1 reviewer (pro developer).
+
+hotfix/{issue} → Branched from the release tag in Prod. Emergency fix path.
+                Merges to both main and current release branch.
+```
+
+**Hotfix process:** Hotfixes skip the standard Test cycle — they do not skip the Config Gate or Prod approval gate. A hotfix with a security vulnerability must be ISSO-reviewed before Prod deployment, regardless of urgency.
+
+### 5.5 Managed vs. Unmanaged Solutions
+
+| Environment | Solution Type | Rationale |
+|---|---|---|
+| Dev | Unmanaged | Developers must be able to modify components |
+| Test | Managed | Validates that the managed deployment path works; prevents Dev-only assumptions |
+| Prod | Managed | Prevents ad-hoc modifications; maintains solution history |
+
+**Never import managed solutions to Dev.** Managed solutions in Dev create a layer that blocks local modifications. The most common symptom is "I can't edit this form" — caused by a managed solution imported over an unmanaged one.
+
+**Never deploy unmanaged solutions to Test or Prod.** Unmanaged solutions in production are unauditable, un-rollbackable, and create merge conflicts that can only be resolved by manual component deletion. This is a hard pipeline rule in LP-ALM.
+
+### 5.6 Environment Variables and Connection References
+
+Environment variables are the correct mechanism for per-environment configuration. They are set in `_Config`, which is applied manually — never committed to source control.
+
+| Variable Type | GCC High Consideration |
+|---|---|
+| Azure endpoint URL | Must be Azure Government URL (`*.usgovcloudapi.net`), not commercial |
+| SharePoint site URL | Must be the GCC High SharePoint URL (`*.sharepoint.us`) |
+| Exchange/Email endpoint | Must be GCC High Exchange Online endpoint |
+| Custom API endpoint | Validate data residency — commercial SaaS APIs may not be authorized |
+
+Connection references bind at the `_Config` layer to service accounts or, where service accounts are prohibited, to designated non-personal credentials per the program's IAM plan. See [LP-ALM.md Section 3.5](/methodology/#35-gcc-high-and-fedramp-specific-configurations).
+
+### 5.7 Rollback Strategy
+
+Power Platform does not have a native atomic rollback. Rollback is an import of the previous known-good managed solution version.
+
+**Pre-deployment requirement:** Before any production deployment, the pipeline must export and archive the current managed solution from Prod. This artifact is the rollback target.
+
+**Rollback procedure:**
+1. Identify rollback target version from ADO pipeline artifacts
+2. Import the prior managed solution versions in layer order (_Security → _Core → _Automation → _UI)
+3. Verify `_Config` values — rollback does not affect environment variables; re-apply if version-specific values changed
+4. Notify ISSO of rollback event for ATO audit trail
+5. Post-incident review within 48 hours
+
+**What rollback cannot fix:** If a `_Core` rollback removes a table that production data was written to, that data is gone. Data destruction risk must be assessed before any `_Core` rollback. For IL5 data, ISSO must be notified of any data loss event within 1 hour.
+
+### 5.8 Automated Testing
+
+Power Platform has limited native test tooling. The enterprise standard approach:
+
+| Test Type | Tooling | Stage |
+|---|---|---|
+| Solution validity | PAC CLI solution checker | PR validation |
+| Schema contamination | PowerShell script (LP-ALM pr-validation.yml) | PR validation |
+| Unit tests (server-side logic) | Power Apps Test Studio (canvas), EasyRepro (model-driven) | PR validation |
+| Integration tests | Flow run with test data, verified via assertion flow | Post-deploy to Test |
+| UAT | Manual by program team in Test environment | Before Prod promotion |
+| Security role test | Role validation script (verify privilege matrix) | Post-deploy to Test |
+
+Automated test execution in GCC High requires the self-hosted agent pool. Test Studio tests can be run headlessly via the command line on the agent.
+
+---
+
+## 6. Operational Support Model
+
+> **Well-Architected:** Reliability (recovery, availability), Operational Excellence (observability, emergency response)
+
+### 6.1 Support Tier Model
+
+| Tier | Owner | Scope | GCC High Consideration |
+|---|---|---|---|
+| **L0 — Self-service** | End user | Knowledge base, how-to guides, FAQ | Host in SharePoint GCC High — not commercial SharePoint |
+| **L1 — Help Desk** | Command IT | Password reset, access requests, basic flow errors | Must have Power Platform tenant admin read access; not edit access |
+| **L2 — Application Support** | Program fusion team | App bugs, flow failures, data issues | Requires access to program Test environment for reproduction |
+| **L3 — Platform Support** | Platform CoE | Environment issues, DLP policy, pipeline failures, Dataverse infrastructure | Microsoft Premier/Unified support escalation path required |
+| **L4 — Microsoft Support** | Microsoft | Product bugs, GCC High infrastructure issues | Unified Support contract required; GCC High tickets go to the federal support queue — response times are longer than commercial |
+
+### 6.2 CoE Starter Kit
+
+The [Power Platform CoE Starter Kit](https://learn.microsoft.com/en-us/power-platform/guidance/coe/starter-kit) is available in GCC High with limitations.
+
+**Available in GCC High:**
+- Environment inventory and management
+- Maker activity dashboards
+- App and flow inventory
+- Capacity alerting
+- Maker onboarding and welcome emails
+- DLP impact analysis
+
+**Not available or limited in GCC High:**
+- AI Builder features (limited or unavailable depending on IL level)
+- Some Copilot-dependent features — validate against the GCC High feature parity list before relying on them
+- Telemetry features that require commercial Azure App Insights must be redirected to Azure Government Application Insights
+
+**CoE Starter Kit deployment:** Deploy to the `PLATFORM-COE-ADMIN` environment. Do not mix CoE tooling with any program environment. Keep CoE data (environment inventory, flow run history) out of ATO scope for program ATOs.
+
+### 6.3 Monitoring Stack
+
+```
+Power Platform Unified Audit Log
+        ↓
+Azure Event Hub (Azure Government)
+        ↓
+Microsoft Sentinel (Azure Government)  OR  Splunk Enterprise Security
+        ↓
+SIEM Alerts → SOC Ticket → L3/L4 Response
+```
+
+**Alert thresholds to configure:**
+- Flow failure rate > 5% over 1 hour → L2 alert
+- Dataverse storage > 80% capacity → L3 alert
+- API call rate approaching connector limits → L2 alert
+- Failed authentication > 10 attempts from single IP → SOC alert (potential brute force)
+- New System Administrator assignment in any environment → immediate SOC alert
+
+**Application Insights:** For canvas apps and flows, configure Azure Government Application Insights via the environment diagnostics settings. This provides real-time flow execution telemetry without going through commercial Azure.
+
+### 6.4 Capacity Management
+
+GCC High Power Platform licensing is the same per-user and per-app model as commercial, but the procurement process goes through DoD EA channels. Capacity is not elastic — it must be planned.
+
+**Dataverse capacity alerts:**
+- Database capacity: alert at 80%, escalate at 90%
+- File capacity: alert at 75% (file storage fills faster than DB in document-heavy apps)
+- Log capacity: alert at 80%; log retention configuration directly affects consumption
+
+**API call limits:** Power Automate per-user plan entitlement limits matter at scale. 500,000+ runs/day from a program requires licensed capacity — not free entitlement from the M365 license. Plan this in year 1, not year 3 when you hit the wall.
+
+**Environment capacity reviews:** Quarterly capacity review for all production environments. The CoE Starter Kit capacity dashboard is the primary tool.
+
+### 6.5 Backup and Disaster Recovery
+
+Power Platform (Dataverse) provides automatic daily backups with a 28-day retention window. This covers data loss recovery. It does not cover:
+
+- **Solution loss** — covered by source control (LP-ALM)
+- **Environment deletion** — covered by the 7-day soft-delete window in the Power Platform admin center
+- **Configuration loss** (`_Config`) — covered by the Config Reference Sheet maintained per the LP-ALM methodology
+
+**Disaster recovery considerations for IL5:**
+- RPO: Dataverse automatic backup = up to 24 hours data loss acceptable for most workloads; for Mission Critical, implement daily manual exports to Azure Government Blob Storage
+- RTO: Environment restoration from backup = 1–4 hours; solution reimport = depends on pipeline; total RTO for a full environment rebuild from source = 4–8 hours for a well-maintained LP-ALM repository
+- Cross-region failover: Dataverse does not support active-active cross-region for GCC High. Passive DR requires a secondary environment (not recommended unless mission criticality warrants the licensing cost)
+- Document your DR procedures in the environment register and test them annually
+
+---
+
+## 7. Leadership Reporting & Metrics
+
+> **Well-Architected:** Operational Excellence (observability), Experience Optimization (business outcomes)
+
+### 7.1 What Leadership Actually Cares About
+
+Senior leadership in a DoD organization does not care about flow run counts or connector usage. They care about:
+
+1. **Mission impact** — Are the applications supporting the mission? Are users adopting them?
+2. **Risk** — Are there open security findings? ATO gaps? Unsupported applications?
+3. **Cost** — Are we getting value from the platform investment?
+4. **Ownership** — Who is accountable for what?
+
+Everything else is noise.
+
+### 7.2 Executive Scorecard (Monthly)
+
+| Metric | Target | Why It Matters |
+|---|---|---|
+| Active production applications | Trend up | Platform is delivering value |
+| Applications with no assigned owner | 0 | Ownerless apps become unsupportable |
+| Open ATO findings (Critical) | 0 | Compliance posture |
+| Open ATO findings (High) | < 5 | Compliance trend |
+| Environments past decommission date | 0 | Sprawl control |
+| Applications with no activity in 90 days | < 10% | Utilization efficiency |
+| Platform-wide licensing utilization | 60–80% | Right-sizing |
+| CoE intake SLA met (< 5 business days) | > 95% | Governance enabling, not blocking |
+
+### 7.3 Operational Metrics (CoE Team)
+
+| Metric | Cadence | Owner |
+|---|---|---|
+| Environment count by tier | Monthly | CoE |
+| DLP violation count by policy | Weekly | CoE + ISSO |
+| Flow failure rate by environment | Daily | CoE |
+| Orphaned flows (owner departed) | Monthly | CoE |
+| Orphaned apps (owner departed) | Monthly | CoE |
+| Unlicensed maker activity | Weekly | CoE |
+| Sandbox environments past expiry | Daily | CoE (automated) |
+| Solution checker violations in production | Monthly | CoE |
+
+### 7.4 Metrics That Are Noise
+
+Do not include these in leadership reporting — they create alert fatigue and obscure the signal:
+
+- **Total flow runs** — volume is not value; a broken flow that runs 1M times is not an asset
+- **Total apps created** — quantity is not quality; 500 unused apps is not a success story
+- **Connector usage count** — irrelevant without context
+- **Pipeline execution count** — tells leadership nothing they can act on
+- **API call volume** — an operational metric, not a strategic one
+
+### 7.5 Platform Adoption Reporting
+
+Adoption reporting answers: "Are our users actually using the platform?" This matters because unused platforms are cancelled platforms.
+
+Recommended adoption metrics:
+- Monthly Active Users (MAU) by application — tracked via unified audit log
+- User growth rate by command — identifies where the platform is taking hold
+- Application age distribution — old apps never decommissioned = technical debt
+- Citizen vs. pro developer ratio — tracks fusion team health
+- Self-service requests as % of total intake — tracks governance maturity (high self-service % = governance is enabling, not blocking)
+
+### 7.6 Building the Reporting Infrastructure
+
+The CoE Starter Kit provides dashboards for most operational metrics. For executive reporting:
+
+- Build a Power BI report on top of CoE Dataverse data, deployed in the CoE-Admin environment
+- Schedule automated email delivery of the executive scorecard (Power Automate + CoE data)
+- Do not build the reporting in Excel. At DoD scale, an Excel-based governance report is outdated the moment it is sent.
+- Use Azure Government Power BI Premium for large-scale reporting; do not route tenant governance data through commercial Power BI service
+
+---
+
+## 8. Recommended Enterprise Standards
+
+> **Well-Architected:** Operational Excellence (development standards), Security (consistent posture)
+
+### 8.1 Naming Conventions
+
+All naming follows the pattern defined in LP-ALM Section 4 with the following DoD-specific additions:
+
+| Artifact | Pattern | Example |
+|---|---|---|
+| Environment | `{ORG}-{CMD}-{PGM}-{TYPE}` | `ARMY-FORSCOM-SYSTRK-PROD` |
+| Publisher | `{ORG}{CMD}` (no hyphen) | `ARMYFORSCOM` |
+| Solution prefix | lowercase, 4–6 chars | `systrk` |
+| ADO Project | `{CMD}-{PGM}` | `FORSCOM-SYSTRK` |
+| Entra Group | `PP-{ENV}-{ROLE}` | `PP-SYSTRK-PROD-Users` |
+| Service Principal | `sp-pp-{env}-{type}` | `sp-pp-systrk-prod-pipeline` |
+| Table | `{prefix}_TableName` | `systrk_SystemProfile` |
+| Column | `{prefix}_columnname` | `systrk_systemstatus` |
+| Environment Variable | `{prefix}_VariableName` | `systrk_ApiEndpoint` |
+| Flow | `{prefix} - Descriptive Name - Trigger` | `systrk - Create System Record - HTTP` |
+| Canvas App | `{prefix} System Tracker` | `systrk System Tracker` |
+
+### 8.2 Publisher Standards
+
+One publisher per program team. Publisher display name includes the command acronym. Publisher prefix is the solution prefix (lowercase, 4–6 characters, unique within tenant). The default solution publisher should never be used — "Default Publisher" in a production environment is a governance failure.
+
+Publisher uniqueness must be enforced at intake — the CoE intake form validates prefix uniqueness before approving a new program.
+
+### 8.3 Solution Segmentation
+
+Follow the LP-ALM five-layer model. The only approved deviation is the extension patterns documented in LP-ALM Section 2.6 (multiple UI solutions, `_Integration` layer, shared `_Core`). Any other deviation requires architecture review.
+
+### 8.4 Canvas App Design Standards
+
+- **One app per canvas solution** — multiple apps in one solution make component-level rollback impossible
+- **App checker: Critical = 0, High = 0** before production
+- **Named formulas over global variables** for performance and readability
+- **No hardcoded URLs** — all endpoints via environment variables in `_Config`
+- **Delegation warnings must be resolved** — non-delegable queries are a scalability time bomb; at DoD scale, non-delegable queries against large tables will fail
+- **GCC High SharePoint connector** uses the `.sharepoint.us` endpoint — canvas apps calling commercial SharePoint from GCC High are out of compliance
+- **Screen loading strategy**: use named formulas in `App.OnStart` sparingly; prefer `App.Formulas` (named formulas) for performance
+- **Error handling**: every patch/submit operation must handle errors explicitly — display a user-facing error, log to a Dataverse audit table
+
+### 8.5 Model-Driven App Standards
+
+- Business Process Flows are always in `_Core`, not `_UI`
+- Views and forms belong in `_UI`
+- Site map is in `_UI`
+- Do not add solution components to the default solution — always use the named program solution
+- Business rules: simple visibility/requirement rules belong in `_Core`; complex business logic belongs in a plugin (`_Core`) or flow (`_Automation`)
+
+### 8.6 Power Automate Design Standards
+
+- **Cloud flows over desktop flows** wherever possible — desktop flows require an unattended RPA license and a dedicated machine; at DoD scale, this is expensive and fragile
+- **Child flows** for reusable logic — do not copy-paste the same 15 actions across 20 flows
+- **Error handling on every action** that can fail — configure-run-after settings for error and timeout paths
+- **Retry policy**: set explicit retry policy on HTTP calls and connector actions — do not rely on the default 4-retry behavior
+- **Concurrency control**: for flows triggered by Dataverse events on high-volume tables, set concurrency to a value that the downstream API can handle
+- **No personal connections in any environment except personal Dev** — all Test and Prod connections use service accounts or approved non-personal credentials per program IAM plan
+- **Flow ownership**: flows owned by a person become inoperative when that person departs. All production flows must be owned by the program Dataverse Owner Team, not an individual.
+
+### 8.7 Plugin vs. Flow Guidance
+
+| Use Plugin | Use Flow |
+|---|---|
+| Sub-second synchronous business logic | Asynchronous background processing |
+| Data validation on save | Cross-system integration |
+| Complex calculations required in the transaction | Approval workflows |
+| Rollback behavior required (transaction participation) | Scheduled processing |
+| Performance-critical operations | Human-in-the-loop processes |
+| Logic that must work offline | Notification and alerting |
+
+Plugins execute in the Dataverse transaction and can roll back. Flows do not participate in Dataverse transactions. The wrong choice here causes data consistency failures at scale.
+
+### 8.8 Logging and Error Handling Standards
+
+Every production flow and plugin must log to a dedicated audit/telemetry table in `_Core`:
+
+```
+Table: {prefix}_PlatformLog
+Columns:
+  {prefix}_name        (string) — component name + operation
+  {prefix}_status      (choice) — Success, Warning, Error, Info
+  {prefix}_message     (multiline text) — human-readable description
+  {prefix}_details     (multiline text) — technical detail / stack trace
+  {prefix}_correlationid (string) — trace ID for cross-system correlation
+  createdon            (system) — timestamp
+  createdby            (system) — triggering user/SP
+```
+
+This table feeds both L2 operational support and ATO audit evidence. Do not log sensitive field values — log field names and IDs only.
+
+---
+
+## 9. Risks & Anti-Patterns
+
+> **Well-Architected:** Security (threat model), Reliability (risk identification), Operational Excellence (safe practices)
+
+### 9.1 Environment Sprawl
+
+**What it looks like:** 300 environments with no documented owners, mixed data classifications in the same environment, sandbox environments running for 2 years.
+
+**Why it happens:** Self-service provisioning without lifecycle enforcement. Every team that needed a quick environment made one and never deleted it.
+
+**How to prevent it:** Automated deprovisioning workflows triggered by expiry date. Quarterly environment review sent to all environment owners. Environments with no owner and no activity for 60 days are auto-quarantined (not deleted — quarantined, with 30-day window to claim).
+
+### 9.2 ATO Theater
+
+**What it looks like:** An ATO document that describes a system that no longer exists, or describes perfect security controls that are not actually implemented.
+
+**Why it happens:** ATO is written once at system launch and never updated to reflect changes.
+
+**How to prevent it:** ATO evidence is generated from the system, not written about the system. Security role exports, environment variable documentation, DLP policy screenshots, and audit log samples should be generated automatically from the live environment on a quarterly basis and compared against the ATO description.
+
+### 9.3 Shared Admin Accounts
+
+**What it looks like:** One "PowerPlatformAdmin" email account with the password shared among 8 people.
+
+**Why it happens:** Difficulty provisioning service accounts in DoD agencies; convenience.
+
+**Why it is catastrophic:** Shared accounts cannot be audited. When a security event occurs, you cannot determine which person acted. The account cannot be tied to an individual in the audit log. This is a FISMA compliance failure. Every ISSO reviewing this will flag it.
+
+**How to prevent it:** Use service principals for automation. Use individual named accounts with time-bounded Just-In-Time (JIT) privileged access for human admin activities. Never share credentials.
+
+### 9.4 Personal Connections in Production
+
+**What it looks like:** A Power Automate flow in production runs under a named GS-12's Office 365 connection. When that person transfers, the flow breaks.
+
+**Why it happens:** Service accounts were hard to get. The developer used their own account and forgot.
+
+**The cascade failure:** The GS-12 transfers → flow connection expires → production application stops working → mission impact → emergency ticket → 2 weeks to get a new service account or non-personal credential → production down for 2 weeks.
+
+**How to prevent it:** Pipeline deployment validates that connection references are bound to non-personal accounts before promoting to production (scriptable check). CoE Starter Kit reports on flows with connections owned by individuals.
+
+### 9.5 Over-Engineered Security Models
+
+**What it looks like:** 47 custom security roles. A BU hierarchy 6 levels deep. Field security profiles on every column including non-sensitive lookup fields.
+
+**Why it happens:** Security teams applying maximum restriction by default.
+
+**Why it is a problem:** No one understands the model. Support calls flood in for basic operations. The ISSO who approved it left. The replacement ISSO cannot audit it. The first significant personnel change breaks something and no one knows what.
+
+**How to prevent it:** Five roles per application maximum. Three BU levels maximum. Field security only on columns that contain CUI or PII. Document every security decision in the ATO with a specific justification tied to a NIST control.
+
+### 9.6 Dataverse Misuse
+
+**What it looks like:** Storing documents, images, and attachments in Dataverse Notes as the primary document management system. 500GB database from a 50-user app.
+
+**Why it happens:** Dataverse Notes are convenient. No one planned storage.
+
+**The result:** Storage costs balloon (Dataverse storage is significantly more expensive per GB than SharePoint/Blob). Performance degrades. Backup times increase.
+
+**How to prevent it:** Documents belong in SharePoint (GCC High) or Azure Government Blob Storage. Dataverse stores references (URLs) to documents, not the documents themselves. Establish a storage architecture decision at intake.
+
+### 9.7 ALM Failures
+
+**What it looks like:** Production is different from Test. "We just edited it in production — it was faster." Developers with System Administrator access in production.
+
+**Why it happens:** Pressure to deliver quickly, combined with insufficient pipeline investment early in the program.
+
+**The cascade:** Production diverges from source control → source control becomes unreliable → developers stop trusting the pipeline → more ad-hoc production changes → ATO cannot be supported → ISSO flags production as out-of-compliance with documented baseline.
+
+**How to prevent it:** No developer has write access to the production environment. The pipeline is the only deployment path. This is enforced by Entra ID group membership, not by trust.
+
+### 9.8 Ignoring Licensing Until It Breaks
+
+**What it looks like:** A program builds an application on the assumption that the M365 license includes Power Apps. It launches to 1,000 users. The first large-scale deployment hits the per-user plan limit. Emergency procurement begins.
+
+**Why it happens:** Licensing is not technically complex, so it gets deferred.
+
+**How to prevent it:** Licensing capacity check is part of the intake process. The CoE maintains a capacity dashboard. Any program expected to exceed free-tier entitlements requires a licensing plan as part of the intake request. Plan this in year 1.
+
+### 9.9 CoE Starter Kit Drift
+
+**What it looks like:** The CoE Starter Kit is deployed once and never updated. 18 months later, it runs on deprecated APIs, generates alerts that no one reads, and the CoE team has stopped trusting its data.
+
+**Why it happens:** The CoE Starter Kit requires active maintenance — it is not set-and-forget.
+
+**How to prevent it:** Assign a dedicated CoE engineer responsible for the CoE Starter Kit version and configuration. Update on the Microsoft-published cadence (roughly quarterly). Treat it like any other enterprise application — with a maintenance window, test environment, and change review.
+
+### 9.10 Bypassing the `_Config` Protocol
+
+**What it looks like:** A developer hardcodes an environment variable value inside a flow action. Or commits a `_Config` solution export to source control because "it was easier." Or the pipeline applies `_Config` automatically.
+
+**Why it happens:** The `_Config` manual step feels like friction.
+
+**Why it is dangerous:** `_Config` contains endpoint URLs and connection reference bindings. Committing it to source exposes configuration (and potentially embedded credential references) to every repository reader. Automating it bypasses the intentional human checkpoint that prevents a Test configuration from being applied to Production. This is the foundational LP-ALM security rule — there is no workaround.
+
+---
+
+## 10. Final Recommended Strategy
+
+### 10.1 The Recommended Model
+
+For a DoD organization at Army, Navy, or USMC scale, the recommended architecture is:
+
+> **Federated governance. One GCC High tenant. One Platform CoE. Managed Environments enforced everywhere. LP-ALM for all pro-developer workloads. Automated intake and provisioning. Self-hosted ADO agents in Azure Government. CoE Starter Kit as the operational foundation.**
+
+This model delivers:
+- ATO-supportable, auditable, documented environments
+- Development velocity through self-service sandboxes and pre-approved patterns
+- Security posture that survives personnel turnover
+- Cost visibility and licensing discipline
+- A governance process that enables innovation rather than gating it
+
+### 10.2 Tradeoff Analysis
+
+| Tradeoff | What You Give Up | What You Gain |
+|---|---|---|
+| One production environment per program (vs. shared) | Lower licensing cost; simpler management of fewer environments | ATO isolation; blast radius containment; program autonomy |
+| Self-hosted agents (vs. managed) | Setup and maintenance burden | GCC High compatibility; IP-restricted access to IL5 environments |
+| LP-ALM mandatory for Mission/Business Critical | Dev speed for small teams early on | Supportability, rollback capability, ATO evidence, long-term sustainability |
+| Citizen dev governance (vs. fully open) | Developer freedom; faster small wins | No shadow IT; no ungovernable orphan apps at year 3 |
+| Separate IL5 environments (vs. mixed) | Additional licensing and management overhead | Compliance with IL5 DISA PA; defensible ATO boundary |
+
+The most significant tradeoff is governance overhead vs. velocity. At small scale (< 5 programs, < 50 developers), this model is heavier than necessary. At DoD scale (> 20 programs, hundreds of developers), this model is the minimum required to remain manageable.
+
+### 10.3 Why This Model Works for DoD-Scale Organizations
+
+1. **Personnel is not a dependency.** Service principals, Entra groups, and source control ensure the platform survives individual turnover. The number one operational failure in government Power Platform deployments is an application that only one person understands, and that person is gone.
+
+2. **The governance model scales.** Automated intake, self-service sandboxes, and pre-approved patterns mean the CoE team is not a bottleneck. A 5-person CoE team can govern 100+ programs with this model.
+
+3. **ATO evidence is produced, not assembled.** Security role exports, audit logs, DLP policy records, and environment configuration are maintained as operational artifacts — not assembled in a spreadsheet the week before an ATO review.
+
+4. **It aligns with how DoD actually works.** Commands are decentralized. Programs have their own PMs and ISSOs. Central control of every deployment is not realistic. Centralized standards with decentralized execution matches the organizational reality.
+
+### 10.4 Phased Implementation Roadmap
+
+**Phase 1 — Foundation (Months 1–6)**
+- [ ] Establish Platform CoE team and PGB charter
+- [ ] Deploy CoE Starter Kit to CoE-Admin environment
+- [ ] Implement environment naming standard and enforce at tenant level
+- [ ] Activate Managed Environments org-wide
+- [ ] Implement 3-tier DLP policy architecture
+- [ ] Configure self-hosted ADO agent pool in Azure Government
+- [ ] Build automated intake application (CoE-Admin)
+- [ ] Train first cohort of pro developers on LP-ALM methodology
+- [ ] Publish enterprise standards (this document + LP-ALM + component placement decision tree)
+- [ ] Establish SIEM integration for audit log routing
+
+**Phase 2 — Scale (Months 7–18)**
+- [ ] Onboard first 10–20 programs through LP-ALM pipeline
+- [ ] Implement automated sandbox expiry and deprovisioning
+- [ ] Build executive reporting dashboard (CoE data → Power BI)
+- [ ] Implement DLP violation alerting in SIEM
+- [ ] Establish quarterly governance review cadence
+- [ ] Train citizen developer cohort with governance guardrails
+- [ ] Implement annual environment owner confirmation workflow
+- [ ] Achieve CoE Starter Kit full deployment across all production environments
+
+**Phase 3 — Optimize (Months 19–36)**
+- [ ] Full automation of environment lifecycle management
+- [ ] Self-service developer environment provisioning
+- [ ] Automated ATO evidence collection (quarterly evidence package generation)
+- [ ] Platform-level capacity forecasting and procurement automation
+- [ ] Cross-command shared component library operational in Shared Services
+- [ ] CoE governance board operating with < 5-day SLA for all intake requests
+- [ ] Annual Well-Architected review for top 10 production applications
+- [ ] Hotfix drill and DR test conducted for all Mission Critical applications
+
+### 10.5 Immediate Priorities
+
+If you implement nothing else from this document, implement these four things first:
+
+1. **No developer writes directly to production.** This single control prevents the most common ALM failures in government Power Platform deployments.
+
+2. **Every environment has a documented human owner.** Not a team name — a specific person accountable for that environment. When that person transfers, the first task in their offboarding is environment ownership transfer.
+
+3. **`_Config` is never committed to source control.** See [LP-ALM.md foundational security rule 1](/methodology/).
+
+4. **Activate Managed Environments and turn on the Unified Audit Log.** Without these two controls, you have no visibility into what is happening in your tenant and no ability to support an ATO.
+
+Everything else in this document is important. These four are non-negotiable.
+
+---
+
+*LP-ALM Enterprise Strategy v1.0 | May 2026*
+
+*Aligned with [Power Platform Well-Architected](https://learn.microsoft.com/en-us/power-platform/well-architected/) — Security, Reliability, Operational Excellence, Performance Efficiency, and Experience Optimization pillars.*
+
+*Built with assistance from GitHub Copilot (Claude Sonnet 4.6). All output reviewed by a human.*
