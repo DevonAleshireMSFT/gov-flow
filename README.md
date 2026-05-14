@@ -21,7 +21,7 @@ It is designed to complement [LP-ALM](https://devonaleshiremsft.github.io/layere
 
 ## Who is this for?
 
-- **Platform engineers** standing up or maturing a GCC High Power Platform tenant
+- **Platform engineers** standing up or maturing an Azure Government / GCC High Power Platform tenant
 - **ISSOs and AOs** looking for control mappings and ATO evidence guidance
 - **Program leads** onboarding new solutions into a governed tenant
 - **CoE teams** responsible for platform standards and operational support
