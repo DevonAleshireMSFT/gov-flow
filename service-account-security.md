@@ -144,7 +144,9 @@ Not every automation scenario requires a licensed user account. Understand when 
 | Scenario | Use service principal | Use service account (user) | Notes |
 |---|---|---|---|
 | Power Platform Admin API calls | Yes | Yes | Both work; service principal requires app registration |
-| Power Automate flows (connections) | **No** — not supported | **Yes** | Flows require a licensed user account for connections |
+| Power Automate flow ownership | Yes — supported | Yes | Service principal as flow owner eliminates personal account dependency; connector-level auth still applies per connector |
+| Power Automate connections (SharePoint, Exchange) | **No** | **Yes** | Delegated connectors require a licensed user account for the connection itself even when the flow owner is a service principal |
+| Power Automate connections (Dataverse, HTTP + Azure AD) | Yes (managed identity or app reg) | Yes | Dataverse connector supports service principal auth; managed identity preferred |
 | PAC CLI in pipelines | Yes (app ID + secret) | Yes | Service principal preferred for pipelines |
 | Azure Government resource management | Yes | Avoid | Azure RBAC is designed for service principals |
 | SharePoint connections in flows | **No** | **Yes** | SharePoint connector requires a user account |
