@@ -1,0 +1,39 @@
+// =============================================================
+// gov-flow color scheme — Security by Design
+// Navy sidebar · Clean white content · Steel blue accents
+// =============================================================
+
+// --- Custom palette ---
+$navy-900:   #051322;
+$navy-800:   #0a1f3d;
+$navy-700:   #102952;
+$navy-600:   #1a3a6e;
+$blue-accent: #1565c0;
+$blue-light:  #1e88e5;
+$surface:    #f4f6f9;
+$border:     #dde3ed;
+$text-dark:  #1c2336;
+$text-body:  #3d4b66;
+
+// --- Sidebar ---
+$sidebar-color:          $navy-800;
+$search-background-color: $navy-700;
+$search-result-preview-color: #8ab4d4;
+$nav-child-link-color:   #7baac8;  // muted blue-grey, readable on dark bg
+
+// --- Body ---
+$body-background-color:  #ffffff;
+$body-text-color:        $text-body;
+$body-heading-color:     $text-dark;
+$border-color:           $border;
+$table-background-color: #ffffff;
+$table-border-color:     $border;
+$feedback-color:         $surface;
+$code-background-color:  $surface;
+
+// --- Links ---
+$link-color: $blue-light;
+
+// --- Buttons ---
+$btn-primary-color: $blue-accent;
+$base-button-color: $surface;

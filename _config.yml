@@ -15,8 +15,8 @@ aux_links:
     - "https://github.com/DevonAleshireMSFT/gov-flow"
 aux_links_new_tab: true
 
-# Color scheme: "light" or "dark"
-color_scheme: light
+# Color scheme: "light", "dark", or custom scheme name from _sass/color_schemes/
+color_scheme: govflow
 
 # Heading anchors
 heading_anchors: true
@@ -47,7 +47,7 @@ callouts:
     color: red
   important:
     title: Important
-    color: purple
+    color: blue
   tip:
     title: Tip
     color: green
