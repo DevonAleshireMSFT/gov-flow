@@ -335,6 +335,8 @@ A flat, single DLP policy for an entire GCC High tenant does not work at DoD sca
 
 **Entra ID Groups Strategy:**
 
+For step-by-step implementation — how to assign groups to environments, configure group-backed Dataverse teams, and apply the access matrix across Dev/Test/Prod tiers — see [Environment Access & RBAC](../environment-access/).
+
 | Group Type | Naming Pattern | Purpose |
 |---|---|---|
 | Environment Owners | `PP-{ENV}-Owners` | Manage environment settings; assigned Program Admin role |
