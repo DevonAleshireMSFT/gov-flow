@@ -1,7 +1,7 @@
 ---
 layout: default
 title: JavaScript & Code Security
-nav_order: 10
+nav_order: 9
 permalink: /code-security/
 ---
 

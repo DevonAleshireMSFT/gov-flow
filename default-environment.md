@@ -1,7 +1,7 @@
 ---
 layout: default
 title: Default Environment & Org-Wide Access
-nav_order: 9
+nav_order: 7
 permalink: /default-environment/
 ---
 
