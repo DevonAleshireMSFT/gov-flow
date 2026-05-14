@@ -1,8 +1,8 @@
-title: gov-flow
+title: GovFlow
 description: >-
-  Power Platform Governance and ALM Framework for GCC High / DoD Organizations.
-  LP-ALM methodology, enterprise governance standards, security architecture,
-  and implementation guidance for large-scale federal Power Platform deployments.
+  Government Federated Low-Code Operations Framework. Enterprise Power Platform
+  governance for GCC High / DoD organizations — environment strategy, DLP
+  architecture, ATO governance, and AI workload security at federal scale.
 
 baseurl: ""
 url: "https://govflowhq.com"

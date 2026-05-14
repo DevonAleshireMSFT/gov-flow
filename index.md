@@ -5,10 +5,10 @@ nav_order: 1
 permalink: /
 ---
 
-# gov-flow
+# GovFlow
 {: .fs-9 }
 
-Enterprise Power Platform governance for GCC High / DoD organizations.
+Government Federated Low-Code Operations Framework
 {: .fs-6 .fw-300 }
 
 [Get started](getting-started/){: .btn .btn-primary .fs-5 .mb-4 .mb-md-0 .mr-2 }
@@ -16,26 +16,26 @@ Enterprise Power Platform governance for GCC High / DoD organizations.
 
 ---
 
-## What is gov-flow?
+## What is GovFlow?
 
-**gov-flow** is the enterprise governance layer for Microsoft Power Platform in GCC High / DoD environments. It covers the platform-layer concerns that are explicitly out of scope for [LP-ALM](https://devonaleshiremsft.github.io/layered-platform-alm/): environment topology, DLP architecture, RBAC design, CoE model, ATO-supportable governance, and organizational structure at Army/Navy/USMC scale.
+**GovFlow** is the enterprise governance layer for Microsoft Power Platform in GCC High / DoD environments. It covers the platform-layer concerns that are explicitly out of scope for [LP-ALM](https://devonaleshiremsft.github.io/layered-platform-alm/): environment topology, DLP architecture, RBAC design, CoE model, ATO-supportable governance, and organizational structure at Army/Navy/USMC scale.
 
 It is not a starter kit. It is a reference architecture with templates. Teams implement it by applying the patterns to their own GCC High tenants.
 
 {: .important }
-> **gov-flow governs the platform layer. [LP-ALM](https://devonaleshiremsft.github.io/layered-platform-alm/) governs the solution layer.** Read both. Implement both. They are designed to be used together.
+> **GovFlow governs the platform layer. [LP-ALM](https://devonaleshiremsft.github.io/layered-platform-alm/) governs the solution layer.** Read both. Implement both. They are designed to be used together.
 
 ## The two-layer stack
 
 | Layer | Framework | What it governs |
 |---|---|---|
-| **Platform layer** | gov-flow (this site) | Tenant setup · Environment topology · DLP · RBAC · CoE · Managed Environments · ATO governance · Leadership reporting |
+| **Platform layer** | GovFlow (this site) | Tenant setup · Environment topology · DLP · RBAC · CoE · Managed Environments · ATO governance · Leadership reporting |
 | **Solution layer** | [LP-ALM](https://devonaleshiremsft.github.io/layered-platform-alm/) | Five-layer decomposition · Pipeline YAML · Source control structure · Security role design · PAC CLI workflow |
 
 
 ## Who this is for
 
-| Role | What gov-flow provides | What LP-ALM provides |
+| Role | What GovFlow provides | What LP-ALM provides |
 |---|---|---|
 | **Platform CoE Engineers** | Environment governance, DLP architecture, CoE Starter Kit setup | Pipeline YAML, PAC CLI workflow, source control structure |
 | **Enterprise Architects** | 8-tier environment topology, BU hierarchy, tenant segmentation | Layer decomposition model, solution structure |
@@ -48,7 +48,7 @@ It is not a starter kit. It is a reference architecture with templates. Teams im
 ## Recommended reading order
 
 {: .note }
-> Read [Power Platform Landing Zones](https://github.com/microsoft/industry/tree/main/foundations/powerPlatform) → **gov-flow** (this site) → [LP-ALM](https://devonaleshiremsft.github.io/layered-platform-alm/) → [Power Platform Well-Architected](https://learn.microsoft.com/en-us/power-platform/well-architected/)
+> Read [Power Platform Landing Zones](https://github.com/microsoft/industry/tree/main/foundations/powerPlatform) → **GovFlow** (this site) → [LP-ALM](https://devonaleshiremsft.github.io/layered-platform-alm/) → [Power Platform Well-Architected](https://learn.microsoft.com/en-us/power-platform/well-architected/)
 
 1. **[Getting Started](getting-started/)** — First 30-day priorities, key decisions, prerequisites
 2. **[Enterprise Strategy — GCC High / DoD](enterprise-strategy/)** — Full environment topology, security architecture, governance model, ALM strategy, operational support, and implementation roadmap for large-scale DoD organizations
