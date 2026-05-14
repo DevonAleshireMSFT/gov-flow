@@ -148,6 +148,8 @@ The following topology is the recommended baseline for an organization with mult
 
 One production environment per program/application portfolio that has a distinct ATO boundary. Programs that share an ATO may share a production environment. Programs with separate ATOs must have separate production environments — ATO scope leakage is a compliance failure, not a preference.
 
+**The exception: Platform CoE-owned enterprise environments.** Some applications legitimately serve the entire organization or span multiple commands. These do not belong in a program-owned environment. The Platform CoE maintains a dedicated enterprise production environment (`ENTERPRISE-PROD`) for these workloads, with its own Platform-level ATO boundary. This is not a workaround — it is a deliberate tier in the environment model. See [Default Environment Governance — Enterprise-wide access strategy](../default-environment/#enterprise-wide-application-access-strategy) for provisioning and access guidance.
+
 At large DoD organization scale, expect 50–200+ production environments over a 3–5 year maturity period. This is expected and manageable with Managed Environments and proper governance tooling.
 
 > **Capacity note:** Each Dataverse environment carries a 1 GB base storage requirement. Environment sprawl has a direct licensing cost — factor this into your provisioning approval process.

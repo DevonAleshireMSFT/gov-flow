@@ -108,9 +108,9 @@ Applications that serve large user populations should be deployed to a dedicated
 
 | Environment | Purpose | Access gate |
 |---|---|---|
-| `{ORG}-ENTERPRISE-PROD` | Org-wide or cross-command production apps | `PP-ENTERPRISE-PROD-Access` (parent group) |
-| `{ORG}-ENTERPRISE-TEST` | UAT and integration testing | `PP-ENTERPRISE-TEST-Access` |
-| `{ORG}-ENTERPRISE-DEV` | Development for enterprise platform apps | `PP-ENTERPRISE-DEV-Developers` |
+| `ENTERPRISE-PROD` | Org-wide or cross-command production apps | `PP-ENTERPRISE-PROD-Access` (parent group) |
+| `ENTERPRISE-TEST` | UAT and integration testing | `PP-ENTERPRISE-TEST-Access` |
+| `ENTERPRISE-DEV` | Development for enterprise platform apps | `PP-ENTERPRISE-DEV-Developers` |
 
 This environment is owned by the Platform CoE — not by an individual program — with a Platform-level ATO boundary that covers enterprise apps hosted within it.
 
