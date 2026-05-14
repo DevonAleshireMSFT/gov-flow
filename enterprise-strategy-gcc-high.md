@@ -633,7 +633,7 @@ See the [LP-ALM Methodology](/methodology/) for the full reference.
 
 ### 5.2 Azure DevOps Integration
 
-**GCC High requires self-hosted agents.** Microsoft-hosted agents are not available in the GCC High ADO cloud. Every organization operating in GCC High must maintain a pool of self-hosted build agents.
+**GCC High requires self-hosted agents.** Microsoft-hosted agents are not available in the GCC High ADO cloud. Every organization operating in GCC High must maintain a pool of self-hosted build agents. For the full Azure DevOps + agent architecture, Key Vault integration, and monitoring strategy, see [Azure Integration Strategy](../azure-integration/).
 
 **Self-hosted agent requirements:**
 - Windows Server 2022 recommended (PAC CLI requires .NET)

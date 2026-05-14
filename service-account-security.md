@@ -1,7 +1,7 @@
 ---
 layout: default
 title: Service Account Security
-nav_order: 8
+nav_order: 9
 permalink: /service-account-security/
 ---
 
@@ -139,7 +139,7 @@ For Power Platform connection references, standard user accounts with passwords 
 
 ## Service principals vs user accounts
 
-Not every automation scenario requires a licensed user account. Understand when each applies.
+Not every automation scenario requires a licensed user account. Understand when each applies. For the full Azure-side architecture — application registration structure, certificate vs. secret authentication, Key Vault integration, and managed identity patterns — see [Azure Integration Strategy §3–4](../azure-integration/#3-service-principal-and-application-identity-management).
 
 | Scenario | Use service principal | Use service account (user) | Notes |
 |---|---|---|---|
