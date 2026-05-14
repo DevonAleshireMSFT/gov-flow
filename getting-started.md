@@ -82,7 +82,7 @@ The GovFlow standard:
 Examples: FORSCOM-SYSTRK-PROD, NETC-TRNMGR-DEV
 ```
 
-See [Enterprise Strategy — Section 2.5](../enterprise-strategy/#25-environment-naming-standard) for full rules.
+See [Enterprise Strategy — Section 2.6](../enterprise-strategy/#26-naming-standards) for full rules.
 
 ### Decision 3: Publisher prefix
 
@@ -138,7 +138,7 @@ These are the minimum actions to establish governance before programs start requ
 - [ ] Implement automated naming standard validation in the intake form
 - [ ] Configure automated sandbox provisioning (Power Platform Admin API)
 - [ ] Set up sandbox expiry workflow (auto-quarantine at 90 days)
-- [ ] Publish the [environment naming standard](../enterprise-strategy/#25-environment-naming-standard) to all program teams
+- [ ] Publish the [environment naming standard](../enterprise-strategy/#26-naming-standards) to all program teams
 
 ### Month 2: Training and first programs
 

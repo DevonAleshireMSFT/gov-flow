@@ -154,13 +154,95 @@ At large DoD organization scale, expect 50–200+ production environments over a
 
 > **Capacity note:** Each Dataverse environment carries a 1 GB base storage requirement. Environment sprawl has a direct licensing cost — factor this into your provisioning approval process.
 
-### 2.5 Naming Standards
+### 2.5 Individual Developer Environments
+
+Individual developer environments are personal, single-occupant environments provisioned to a named developer for isolated experimentation, proof-of-concept work, or active development on a specific workload before a program-level Dev environment exists. They sit below the program tier — not a team resource, not tied to an ATO, not used for integration testing.
+
+#### When a developer needs one
+
+An individual developer environment is appropriate when:
+
+- **No program Dev environment exists yet.** A developer has been tasked with building a new solution but the program environment request is still in the approval pipeline. Rather than blocking work, the developer provisions a personal environment to begin canvas app scaffolding, data model design, or flow prototyping.
+- **Isolated spike or proof-of-concept work.** The developer is evaluating a connector, a new Dataverse feature, or an architectural pattern that should not contaminate the shared team Dev environment with experimental tables or flows.
+- **Assigned to multiple programs.** A pro developer supporting two different programs simultaneously cannot cleanly separate work in a single program Dev environment. A personal environment per active engagement reduces cross-contamination risk.
+- **Component library or reusable code development.** A developer building a shared canvas component or a reusable cloud flow pattern benefits from a clean isolated environment before contributing to the shared layer.
+
+#### When a developer does not need one
+
+Individual developer environments are **not** appropriate as a substitute for:
+
+- **Integration testing.** Integration testing belongs in the program's `{CMD}-{PGM}-TEST` environment. A personal dev environment has no service principals, no pipeline configuration, and no representative data model for integration work.
+- **User acceptance testing.** Any testing involving end users must be in a CoE-approved Test or UAT environment. Sharing a personal dev environment with stakeholders is a governance violation.
+- **Permanent development work.** If a solution is in active team development, the program Dev environment is the right home. Personal environments that become de facto team Dev environments are an unmanaged sprawl risk.
+- **Production data of any classification.** Individual developer environments receive the Developer DLP tier — which restricts production data connectors. Placing CUI or higher-classification data in a personal environment is a compliance violation regardless of DLP policy.
+
+#### Naming convention
+
+Individual developer environments follow a distinct pattern to distinguish them from program environments in policy targeting and the environment register:
+
+```
+{USERALIAS}-Dev
+```
+
+| Example | Developer |
+|---|---|
+| `daleshire-Dev` | Devon Aleshire |
+| `jsmith-Dev` | James Smith |
+| `mlopez-Dev` | Maria Lopez |
+
+**Rules:**
+- Use the developer's network/email alias (characters before `@`), lowercased.
+- Single suffix: `-Dev` only. No `{USERALIAS}-Test`, `{USERALIAS}-Prod` — those tiers do not exist at the individual level.
+- Maximum 40 characters (Power Platform display name limit). Truncate alias if needed.
+- Individual dev environments are **not targeted by program DLP policies** — they receive the tenant-wide Developer DLP policy tier (see [DLP Strategy — Developer tier](../dlp-strategy/)).
+
+#### How many per developer
+
+| Rule | Limit | Rationale |
+|---|---|---|
+| **Default limit** | **1 per developer** | One personal dev environment is sufficient for the vast majority of individual development work. Multiple simultaneous personal environments are a sprawl indicator. |
+| **Exception: active multi-program engagement** | Up to **2** | A developer actively supporting two distinct programs with no overlap may request a second individual dev environment. This requires CoE approval with documentation of both program assignments. |
+| **Hard maximum** | **2 per developer** | No individual developer should hold more than 2 active personal dev environments at any time. If a developer needs more, that signals missing program-level environments — fix the root cause. |
+
+The CoE should track individual developer environment count in the Environment Register. Environment sprawl at the individual tier is a common early-stage governance failure in DoD tenants — developers provision environments, finish the work, and never decommission them.
+
+#### Lifecycle
+
+Individual developer environments are **project-scoped**, not indefinite.
+
+| Stage | Action |
+|---|---|
+| **Provision** | Developer submits request via CoE intake app. Approval is lightweight — CoE validates naming, license availability, and that no duplicate personal environment exists. Target: same-day provisioning. |
+| **Active use** | Environment exists for the duration of the development spike or until the program Dev environment is provisioned and the developer has migrated work. |
+| **Expiry** | Individual dev environments carry a **90-day lifecycle** from provisioning date. At day 75, the developer receives an automated renewal-or-decommission notification. |
+| **Renewal** | Developer may request a single 90-day extension with a brief justification. Second renewal requires CoE review. |
+| **Decommission** | Developer confirms any work-in-progress has been exported to source control or migrated. CoE deletes the environment within 5 business days of confirmation or expiry — whichever comes first. |
+
+**There is no grace period for expired individual developer environments that have not responded to renewal notice.** Unresponsive environments are deleted at expiry. This is not punitive — it is the baseline hygiene that prevents 200+ orphaned environments at scale.
+
+#### Relationship to the Sandbox tier
+
+Individual developer environments and sandbox environments serve different purposes and should not be used interchangeably:
+
+| | Individual Dev (`{USERALIAS}-Dev`) | Program Sandbox (`{CMD}-{PGM}-SANDBOX`) |
+|---|---|---|
+| **Owner** | Named developer | Program team |
+| **Access** | Developer only | Program team members |
+| **Purpose** | Personal isolated development | Team-level exploration, POC with stakeholders |
+| **Managed Environment** | No | No |
+| **DLP tier** | Developer (personal tier) | Sandbox (team tier) |
+| **Lifecycle** | 90 days (renewable once) | 30–90 days (no renewal) |
+| **Count limit** | 1–2 per developer | 1 per program per active initiative |
+
+When a developer needs to demo prototype work to stakeholders or a program team, that work should move into the program Sandbox — not be shared out of a personal dev environment.
+
+### 2.6 Naming Standards
 
 Good names matter more than perfect names. Consistent naming enables DLP policy targeting, pipeline environment resolution, Managed Environment grouping, and audit attribution. A cryptic or inconsistent name breaks automation and slows incident response. At the same time, a naming scheme that becomes a 45-character string no one can type from memory will simply be ignored. Pick a convention, document it, enforce it at the environment tier, and keep everything else as readable guidance.
 
 > **Don't overcomplicate it.** Environment names are the most critical — they are targeted by policy and pipelines. Application and flow names are user-facing — readability matters more than codes at that level. Component naming is internal to an app — consistency within the app is the only real requirement.
 
-#### Environment Naming
+### Environment Naming
 
 Environment names are the one place to be strict. They are matched by DLP policies, CoE connectors, and ALM pipelines. An inconsistent environment name means a DLP rule misses it.
 
@@ -188,7 +270,7 @@ PLATFORM-SHAREDSVC-PROD
 - `{PROGRAM}` = 4–8 character program code; matches Azure DevOps project name
 - `{TYPE}` = DEV, TEST, PROD, SANDBOX, ADMIN — spell it out, no abbreviations
 
-#### Solution Naming
+### Solution Naming
 
 Solutions map to deployment units, not layers. One solution per deployable chunk of a program.
 
@@ -202,7 +284,7 @@ Solutions map to deployment units, not layers. One solution per deployable chunk
 
 Keep solution names under 30 characters. Avoid embedding environment type in the solution name — that belongs in the environment, not the solution.
 
-#### Application Naming
+### Application Naming
 
 Users see application names in their launcher. Prioritize readability over abbreviation codes.
 
@@ -212,7 +294,7 @@ Examples: `SYSTRK Ticket Tracker`, `SYSTRK Admin Portal`, `NETC Training Manager
 
 The program prefix keeps apps sortable and attributable without sacrificing usability.
 
-#### Flow Naming
+### Flow Naming
 
 Flows have no namespace in Power Automate. The program prefix is the only thing that groups and attributes them.
 
@@ -222,7 +304,7 @@ Examples: `SYSTRK - New Ticket - Notify Approver`, `SYSTRK - Daily - Archive Clo
 
 Avoid vague names like "Approval Flow" or "Send Email" — they become impossible to manage at scale.
 
-#### Component Naming (Controls, Variables, Collections)
+### Component Naming (Controls, Variables, Collections)
 
 This is internal to the app. The only rule is: be consistent within the app. A recommended prefix convention:
 
@@ -237,7 +319,7 @@ This is internal to the app. The only rule is: be consistent within the app. A r
 
 Use camelCase after the prefix. This is a recommendation — adapt to your team's standard if one already exists. The goal is that the next developer can read your app without a map.
 
-### 2.6 Environment Lifecycle Management
+### 2.7 Environment Lifecycle Management
 
 **Sandbox environments** are the highest-risk category for sprawl. Enforce:
 - Maximum 90-day lifecycle (hard-delete via Power Platform admin API on expiry)
@@ -253,7 +335,7 @@ Use camelCase after the prefix. This is a recommendation — adapt to your team'
 
 **Production environment deletion** requires ISSO sign-off, data disposal documentation per NIST 800-88, and CoE review board approval.
 
-### 2.7 Environment Request and Approval Process
+### 2.8 Environment Request and Approval Process
 
 ```
 Developer/PM submits request (Power Apps form in CoE-Admin)
@@ -275,7 +357,7 @@ Owner team notified with onboarding checklist
 
 Do not build this process in email. The request, approval, provisioning, and notification should all be automated through a CoE intake application. Manual email-based processes do not scale past 20 programs.
 
-### 2.8 Managed Environments
+### 2.9 Managed Environments
 
 Activate Managed Environments for **all** non-sandbox environments. Managed Environments provide:
 - Sharing limits (restrict canvas app sharing to security groups only)

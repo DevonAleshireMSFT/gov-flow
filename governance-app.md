@@ -516,7 +516,7 @@ The GovFlow Platform Governance App is the operational implementation of the fol
 
 | App Capability | Framework Reference |
 |---|---|
-| Environment request and approval | [Enterprise Strategy §2.7 — Environment Request and Approval Process](../enterprise-strategy/#27-environment-request-and-approval-process) |
+| Environment request and approval | [Enterprise Strategy §2.8 — Environment Request and Approval Process](../enterprise-strategy/#28-environment-request-and-approval-process) |
 | Environment register | [Governance Templates — Environment Register](../governance-templates/environment-register/) |
 | DLP and connector governance | [DLP Strategy](../dlp-strategy/) |
 | Service principal lifecycle | [Service Account Security](../service-account-security/) |
