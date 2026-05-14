@@ -518,6 +518,40 @@ The CoE team is not a delivery team — it is a standards-setting, tooling, and 
 - **Exception-only escalation** — the intake process routes only genuine exceptions to the CoE; standard requests auto-approve against checklist
 - **Annual governance review, not per-release review** — mature programs review governance quarterly; new programs get monthly touchpoints for the first 6 months
 
+### 4.8 Dual Application Pattern
+
+For any program application that has both an end-user population and an administrative data management function, the recommended pattern is **two separate model-driven apps in the same environment** — a standard user-facing app and a dedicated admin app.
+
+**Why two apps instead of two areas:**
+
+| Reason | Explanation |
+|---|---|
+| **App-level security enforcement** | Security roles can be scoped per app — end users receive the standard app, administrators receive the admin app. The boundary is enforced at the app level, not through nav visibility alone. |
+| **Read-only forms by default** | The standard app surfaces read-only forms for reference data (systems catalog, vendor records, configuration tables), preventing accidental edits even by privileged users. The UI enforces the intent — not just the security role. |
+| **Cleaner audit trail** | All reference data changes flow exclusively through the admin app, making data management actions immediately distinguishable from end-user activity in audit logs. |
+| **Simpler security role design** | The standard app's security role is genuinely minimal — read access on reference data, limited write on transactional tables only. Role design becomes straightforward when the access surface is constrained. |
+
+**Recommended app sharing pattern:**
+
+| App | Shared with | Entra group |
+|---|---|---|
+| `{AppName}` (standard) | All mission personnel | `PP-{ENV}-{APP}-Users` |
+| `{AppName} Admin` | Program admins + platform team only | `PP-{ENV}-{APP}-Admins` |
+
+{: .important }
+> Both apps live in the same Dataverse environment and share the same data. The admin app is not a separate environment — it is a separate entry point with a different security role and elevated form permissions. Ensure the admin app is not accessible to end users through direct URL navigation by scoping the app's sharing to the `Admins` security group only.
+
+**What belongs in each app:**
+
+| Standard app | Admin app |
+|---|---|
+| Transactional forms (create/edit operational records) | Reference data management (systems catalog, vendors, configuration) |
+| Read-only views of reference data | Bulk data operations and imports |
+| User-facing dashboards and reports | Administrative dashboards, audit views |
+| Self-service actions | User/team management, staging and promotion workflows |
+
+This pattern applies regardless of application classification. A Mission Critical app and a Standard app both benefit from the admin/user separation — the difference is that a Mission Critical admin app requires its own ATO scope documentation.
+
 ---
 
 ## 5. ALM / DevSecOps Strategy

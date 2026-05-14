@@ -14,6 +14,9 @@ Government Federated Low-Code Operations Framework
 [Get started](getting-started/){: .btn .btn-primary .fs-5 .mb-4 .mb-md-0 .mr-2 }
 [View on GitHub](https://github.com/DevonAleshireMSFT/gov-flow){: .btn .fs-5 .mb-4 .mb-md-0 }
 
+{: .note }
+> 🤖 **AI-Assisted Content** — This framework was developed with the assistance of GitHub Copilot. All guidance has been reviewed for accuracy and applicability to government Power Platform environments. As with any governance framework, validate recommendations against your organization's specific requirements, current Microsoft documentation, and applicable DISA/AO policies before implementation. Use at your own risk — this framework does not constitute official government policy or legal compliance guidance.
+
 ---
 
 ## What is GovFlow?
