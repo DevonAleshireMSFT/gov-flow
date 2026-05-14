@@ -99,7 +99,7 @@ The following topology is the recommended baseline for an organization with mult
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                     GCC HIGH TENANT                             │
+│                  GOVERNMENT TENANT (GCC HIGH / DoD)             │
 │                                                                 │
 │  ┌─────────────────┐  ┌─────────────────────────────────────┐  │
 │  │  PLATFORM TIER  │  │         SHARED SERVICES TIER        │  │
@@ -220,10 +220,10 @@ Activate Managed Environments for **all** non-sandbox environments. Managed Envi
 - Solution checker enforcement on import
 - Weekly environment activity digest for the CoE
 - Maker welcome content (onboarding guidance for developers)
-- IP firewall (available in GCC High — use for IL5 environments)
+- IP firewall (available in GCC High / DoD — use for IL5 environments)
 - Pipelines (Power Platform Pipelines as an alternative to ADO for citizen developer deployments)
 
-In GCC High, Managed Environments are available and FedRAMP authorized. Activate at the tenant level by default.
+In GCC High and DoD, Managed Environments are available and FedRAMP / IL5 authorized. Activate at the tenant level by default.
 
 ---
 
