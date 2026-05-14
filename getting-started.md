@@ -76,10 +76,10 @@ These decisions are hard to reverse. Make them before provisioning any environme
 
 Choose and enforce the naming standard **before** provisioning production environments. Renaming environments later requires URL changes in all pipelines, connection references, and documentation.
 
-The gov-flow standard:
+The GovFlow standard:
 ```
-{ORG}-{COMMAND}-{PROGRAM}-{TYPE}
-Examples: ARMY-FORSCOM-SYSTRK-PROD, NAVY-NETC-TRNMGR-DEV
+{COMMAND}-{PROGRAM}-{TYPE}
+Examples: FORSCOM-SYSTRK-PROD, NETC-TRNMGR-DEV
 ```
 
 See [Enterprise Strategy — Section 2.5](../enterprise-strategy/#25-environment-naming-standard) for full rules.

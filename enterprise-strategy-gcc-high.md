@@ -150,30 +150,88 @@ One production environment per program/application portfolio that has a distinct
 
 At large DoD organization scale, expect 50–200+ production environments over a 3–5 year maturity period. This is expected and manageable with Managed Environments and proper governance tooling.
 
-### 2.5 Environment Naming Standard
+### 2.5 Naming Standards
+
+Good names matter more than perfect names. Consistent naming enables DLP policy targeting, pipeline environment resolution, Managed Environment grouping, and audit attribution. A cryptic or inconsistent name breaks automation and slows incident response. At the same time, a naming scheme that becomes a 45-character string no one can type from memory will simply be ignored. Pick a convention, document it, enforce it at the environment tier, and keep everything else as readable guidance.
+
+> **Don't overcomplicate it.** Environment names are the most critical — they are targeted by policy and pipelines. Application and flow names are user-facing — readability matters more than codes at that level. Component naming is internal to an app — consistency within the app is the only real requirement.
+
+#### Environment Naming
+
+Environment names are the one place to be strict. They are matched by DLP policies, CoE connectors, and ALM pipelines. An inconsistent environment name means a DLP rule misses it.
+
+**Recommended pattern:**
 
 ```
-{ORG}-{COMMAND}-{PROGRAM}-{TYPE}
+{COMMAND}-{PROGRAM}-{TYPE}
 ```
 
-Examples:
+**Examples:**
 ```
-ARMY-FORSCOM-SYSTRK-DEV
-ARMY-FORSCOM-SYSTRK-TEST
-ARMY-FORSCOM-SYSTRK-PROD
-NAVY-NETC-TRNMGR-DEV
-USMC-MARFORCOM-LOGTRACK-PROD
+FORSCOM-SYSTRK-DEV
+FORSCOM-SYSTRK-TEST
+FORSCOM-SYSTRK-PROD
+NETC-TRNMGR-DEV
+MARFORCOM-LOGTRACK-PROD
 PLATFORM-COE-ADMIN
 PLATFORM-SHAREDSVC-PROD
 ```
 
-Rules:
+**Rules:**
 - All caps. No spaces. Hyphens as delimiters.
 - Maximum 40 characters (Power Platform display name limit).
-- `{ORG}` = branch abbreviation (ARMY, NAVY, USMC, SOCOM, etc.)
 - `{COMMAND}` = major command abbreviation (FORSCOM, TRADOC, NETC, MARFORCOM)
 - `{PROGRAM}` = 4–8 character program code; matches Azure DevOps project name
-- `{TYPE}` = DEV, TEST, PROD, SANDBOX, ADMIN (not abbreviations — be explicit)
+- `{TYPE}` = DEV, TEST, PROD, SANDBOX, ADMIN — spell it out, no abbreviations
+
+#### Solution Naming
+
+Solutions map to deployment units, not layers. One solution per deployable chunk of a program.
+
+**Recommended pattern:** `{PGM}-{Descriptor}`
+
+| Example | Purpose |
+|---|---|
+| `SYSTRK-Core` | Tables, columns, relationships |
+| `SYSTRK-Config` | Environment variables, connection references |
+| `SYSTRK-Flows` | All cloud flows for the program |
+
+Keep solution names under 30 characters. Avoid embedding environment type in the solution name — that belongs in the environment, not the solution.
+
+#### Application Naming
+
+Users see application names in their launcher. Prioritize readability over abbreviation codes.
+
+**Recommended pattern:** `{PGM} {Friendly Name}` (spaces, title case)
+
+Examples: `SYSTRK Ticket Tracker`, `SYSTRK Admin Portal`, `NETC Training Manager`
+
+The program prefix keeps apps sortable and attributable without sacrificing usability.
+
+#### Flow Naming
+
+Flows have no namespace in Power Automate. The program prefix is the only thing that groups and attributes them.
+
+**Recommended pattern:** `{PGM} - {Trigger} - {Action}`
+
+Examples: `SYSTRK - New Ticket - Notify Approver`, `SYSTRK - Daily - Archive Closed Items`, `SYSTRK - Record Change - Sync SharePoint`
+
+Avoid vague names like "Approval Flow" or "Send Email" — they become impossible to manage at scale.
+
+#### Component Naming (Controls, Variables, Collections)
+
+This is internal to the app. The only rule is: be consistent within the app. A recommended prefix convention:
+
+| Prefix | Type | Example |
+|---|---|---|
+| `btn` | Button | `btnSubmit`, `btnCancel` |
+| `gal` | Gallery | `galTickets`, `galUsers` |
+| `lbl` | Label | `lblStatus`, `lblTitle` |
+| `txt` | Text input | `txtSearch`, `txtComment` |
+| `var` | Variable | `varCurrentUser`, `varSelectedRecord` |
+| `col` | Collection | `colItems`, `colFilteredTickets` |
+
+Use camelCase after the prefix. This is a recommendation — adapt to your team's standard if one already exists. The goal is that the next developer can read your app without a map.
 
 ### 2.6 Environment Lifecycle Management
 
@@ -870,9 +928,12 @@ All naming follows the pattern defined in LP-ALM Section 4 with the following Do
 
 | Artifact | Pattern | Example |
 |---|---|---|
-| Environment | `{ORG}-{CMD}-{PGM}-{TYPE}` | `ARMY-FORSCOM-SYSTRK-PROD` |
-| Publisher | `{ORG}{CMD}` (no hyphen) | `ARMYFORSCOM` |
+| Environment | `{CMD}-{PGM}-{TYPE}` | `FORSCOM-SYSTRK-PROD` |
+| Publisher | `{CMD}{PGM}` (no hyphen) | `FORSCOMSYSTRK` |
+| Solution | `{PGM}-{Descriptor}` | `SYSTRK-Core`, `SYSTRK-Flows` |
 | Solution prefix | lowercase, 4–6 chars | `systrk` |
+| Application | `{PGM} {Friendly Name}` | `SYSTRK Ticket Tracker` |
+| Flow | `{PGM} - {Trigger} - {Action}` | `SYSTRK - New Ticket - Notify Approver` |
 | ADO Project | `{CMD}-{PGM}` | `FORSCOM-SYSTRK` |
 | Entra Group | `PP-{ENV}-{ROLE}` | `PP-SYSTRK-PROD-Users` |
 | Service Principal | `sp-pp-{env}-{type}` | `sp-pp-systrk-prod-pipeline` |
