@@ -102,6 +102,9 @@ Place privileged logic behind:
 - **Dataverse plug-ins** (server-side, not exposed to the client)
 - **Power Automate flows triggered by the app** (flow credentials are not visible to the browser)
 
+{: .note }
+> Custom connectors used to call external or internal APIs require governance review before production use. For custom connector security requirements, authentication standards, and APIM integration guidance, see [DLP Strategy — Custom Connector Governance](../dlp-strategy/#4-custom-connector-governance).
+
 ### 5. Package and deploy through ALM
 
 JavaScript must be deployed as part of a **managed solution**, not copied manually into a production environment. Manual copy operations:

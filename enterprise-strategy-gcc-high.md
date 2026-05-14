@@ -373,27 +373,22 @@ Dataverse security is table-level by default, column-level by exception.
 
 ### 3.4 DLP Policy Architecture
 
-A flat, single DLP policy for an entire GCC High tenant does not work at DoD scale. The recommended DLP architecture has three policy tiers:
+DLP policies are the primary technical control governing which connectors are available in each environment and whether data can flow between trusted and untrusted services. In an unmanaged tenant, a licensed user can move data to any connected service — including personal storage, consumer APIs, and unauthenticated inbound endpoints — without visibility or audit. DLP policies close that gap.
 
-**Tier 1 — Tenant Default Policy (most restrictive)**
-- Applies to all environments not covered by Tier 2 or 3
-- Non-business connectors blocked entirely
-- Microsoft 365 connectors (SharePoint, Teams, Exchange) in Business group
-- All third-party connectors in Non-business (blocked)
-- No exceptions without architecture review
+**GovFlow DLP operates on a default-deny model:** every connector not explicitly approved is blocked. New connectors added to the Power Platform catalog are blocked by default until reviewed by the Platform CoE. "Not yet reviewed" means blocked, not allowed.
 
-**Tier 2 — Managed Environment Policies (per environment group)**
-- Overrides Tier 1 for approved environment groups
-- Dev/Test environments may allow additional connectors (Azure Gov services, approved APIs)
-- Production environments are more restrictive than Dev, not less
-- GCC High limitation: some commercial connectors are not available — validate each connector against the [GCC High connector availability list](https://learn.microsoft.com/en-us/power-platform/admin/powerapps-us-government) before approving
+The recommended architecture has three policy tiers:
 
-**Tier 3 — Program Exception Policy**
-- Rare. Requires ISSO approval, documented business justification, and 90-day review cycle
-- Never allows connectors that route data to commercial cloud from a GCC High environment
-- HTTP connector requires specific endpoint allowlisting — not open HTTP
+| Tier | Scope | Restrictiveness |
+|---|---|---|
+| **Tenant Default** | All environments not covered by a specific group policy | Most restrictive — Microsoft 365 core in Business; all third-party blocked |
+| **Environment-Group Policy** | Managed Environment groups by type (Dev, Test, Prod, Enterprise) | Tiered by environment type; production is never more permissive than test |
+| **Program Exception** | Specific environment; rare; 90-day review cycle | ISSO + Platform CoE approval required; time-limited |
 
-> **IL5 critical:** Connectors that route data through Microsoft commercial infrastructure are not authorized in IL5 environments. Validate every connector's data residency documentation before approving in an IL5 DLP policy.
+{: .warning }
+> **IL5 validation required:** Not all Microsoft 365 connectors route data through the GCC High or DoD boundary. Validate each connector's data residency documentation against your ATO boundary before approving at any tier.
+
+For the full DLP governance model — including connector approval workflow, custom connector requirements, HTTP trigger policy, premium connector governance, and operational recommendations — see the dedicated [DLP Strategy](../dlp-strategy/) page.
 
 ### 3.5 Identity and Access Management
 
