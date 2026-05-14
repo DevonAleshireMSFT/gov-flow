@@ -1,7 +1,7 @@
 ---
 layout: default
-title: Enterprise Strategy — GCC High / DoD
-nav_order: 3
+title: Enterprise Strategy
+nav_order: 4
 permalink: /enterprise-strategy/
 ---
 
