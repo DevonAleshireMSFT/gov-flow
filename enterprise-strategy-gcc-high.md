@@ -150,6 +150,8 @@ One production environment per program/application portfolio that has a distinct
 
 At large DoD organization scale, expect 50–200+ production environments over a 3–5 year maturity period. This is expected and manageable with Managed Environments and proper governance tooling.
 
+> **Capacity note:** Each Dataverse environment carries a 1 GB base storage requirement. Environment sprawl has a direct licensing cost — factor this into your provisioning approval process.
+
 ### 2.5 Naming Standards
 
 Good names matter more than perfect names. Consistent naming enables DLP policy targeting, pipeline environment resolution, Managed Environment grouping, and audit attribution. A cryptic or inconsistent name breaks automation and slows incident response. At the same time, a naming scheme that becomes a 45-character string no one can type from memory will simply be ignored. Pick a convention, document it, enforce it at the environment tier, and keep everything else as readable guidance.
