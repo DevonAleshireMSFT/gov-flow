@@ -5,7 +5,7 @@ description: >-
   and implementation guidance for large-scale federal Power Platform deployments.
 
 baseurl: ""
-url: "https://govflow.dev" # Update to your custom domain
+url: "https://govflowhq.com"
 
 theme: just-the-docs
 
