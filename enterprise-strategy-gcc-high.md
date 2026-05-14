@@ -91,6 +91,8 @@ Cross-command isolation within a single tenant is achieved through:
 
 > **IL5 consideration:** Not all workloads in a GCC High tenant run at IL5. IL5 authorization requires a DISA provisional authorization and specific Dataverse environment configuration. Separate IL5-designated environments from general-purpose environments within the same tenant. Mixing IL5 and non-IL5 workloads in the same environment is not authorized.
 
+> **Default environment:** The default environment is not suitable for enterprise production applications. See [Default Environment Governance](../default-environment/) for risks, limitations, and the recommended approach for org-wide application access.
+
 ### 2.2 Eight-Tier Environment Model
 
 The following topology is the recommended baseline for an organization with multiple commands and multiple development teams:
@@ -507,6 +509,7 @@ Citizen development is not ungoverned development. At DoD scale, citizen apps th
 - All citizen apps that handle CUI must be reviewed by the program ISSO before going to production — no exceptions
 - Citizen apps that reach 20+ users are automatically escalated for pro developer review (tracked via CoE Starter Kit telemetry)
 - Annual citizen app review: all apps older than 12 months with no activity in 60 days are quarantined (not deleted — quarantined) pending owner confirmation
+- Citizen developers should not use the default environment for any app intended for team or organizational use — see [Default Environment Governance](../default-environment/)
 
 ### 4.7 Avoiding Governance Bottlenecks
 
