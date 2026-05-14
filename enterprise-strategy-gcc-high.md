@@ -35,7 +35,7 @@ permalink: /enterprise-strategy/
 
 ### 1.1 Recommended Strategy
 
-A large-scale DoD Power Platform deployment — Army, Navy, or USMC scale — cannot be governed by the same model used for a 50-person commercial enterprise. The combination of strict ATO requirements, personnel churn, classification boundaries, and mission-criticality of some workloads demands a **federated governance model**: centralized platform ownership with decentralized, governed development.
+A large-scale DoD Power Platform deployment cannot be governed by the same model used for a 50-person commercial enterprise. The combination of strict ATO requirements, personnel churn, classification boundaries, and mission-criticality of some workloads demands a **federated governance model**: centralized platform ownership with decentralized, governed development.
 
 The recommended approach is:
 
@@ -47,7 +47,7 @@ This is not a recommendation to lock down everything. It is a recommendation to 
 
 Commercial Power Platform guidance routinely underestimates two realities of large government organizations:
 
-1. **Personnel turnover destroys undocumented systems.** Applications owned by a single person — with no source control, no documentation, no service accounts — become unrecoverable when that person PCS's or retires. At Army scale, this is not a hypothetical; it is the norm.
+1. **Personnel turnover destroys undocumented systems.** Applications owned by a single person — with no source control, no documentation, no service accounts — become unrecoverable when that person PCS's or retires. At this scale, this is not a hypothetical; it is the norm.
 
 2. **ATO requirements are non-negotiable but vary by program.** A logistics tracking app and a commander's dashboard require different ATOs, different data handling requirements, and potentially different environment isolation. A one-size governance model fails both.
 
@@ -146,7 +146,7 @@ The following topology is the recommended baseline for an organization with mult
 
 One production environment per program/application portfolio that has a distinct ATO boundary. Programs that share an ATO may share a production environment. Programs with separate ATOs must have separate production environments — ATO scope leakage is a compliance failure, not a preference.
 
-At Army scale, expect 50–200+ production environments over a 3–5 year maturity period. This is expected and manageable with Managed Environments and proper governance tooling.
+At large DoD organization scale, expect 50–200+ production environments over a 3–5 year maturity period. This is expected and manageable with Managed Environments and proper governance tooling.
 
 ### 2.5 Environment Naming Standard
 
@@ -1015,7 +1015,7 @@ This table feeds both L2 operational support and ATO audit evidence. Do not log 
 
 ### 10.1 The Recommended Model
 
-For a DoD organization at Army, Navy, or USMC scale, the recommended architecture is:
+For a large DoD organization, the recommended architecture is:
 
 > **Federated governance. One GCC High tenant. One Platform CoE. Managed Environments enforced everywhere. LP-ALM for all pro-developer workloads. Automated intake and provisioning. Self-hosted ADO agents in Azure Government. CoE Starter Kit as the operational foundation.**
 

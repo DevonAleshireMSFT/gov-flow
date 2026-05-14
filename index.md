@@ -18,7 +18,7 @@ Government Federated Low-Code Operations Framework
 
 ## What is GovFlow?
 
-**GovFlow** is the enterprise governance layer for Microsoft Power Platform in GCC High / DoD environments. It covers the platform-layer concerns that are explicitly out of scope for [LP-ALM](https://devonaleshiremsft.github.io/layered-platform-alm/): environment topology, DLP architecture, RBAC design, CoE model, ATO-supportable governance, and organizational structure at Army/Navy/USMC scale.
+**GovFlow** is the enterprise governance layer for Microsoft Power Platform in GCC High / DoD environments. It covers the platform-layer concerns that are explicitly out of scope for [LP-ALM](https://devonaleshiremsft.github.io/layered-platform-alm/): environment topology, DLP architecture, RBAC design, CoE model, ATO-supportable governance, and organizational structure at large DoD organization scale.
 
 It is not a starter kit. It is a reference architecture with templates. Teams implement it by applying the patterns to their own GCC High tenants.
 
