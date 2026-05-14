@@ -1,7 +1,7 @@
 ---
 layout: default
 title: "DLP Strategy"
-nav_order: 6
+nav_order: 7
 ---
 
 # Data Loss Prevention Strategy

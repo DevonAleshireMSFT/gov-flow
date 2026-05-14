@@ -1,7 +1,7 @@
 ---
 layout: default
 title: "Azure Integration Strategy"
-nav_order: 5
+nav_order: 6
 ---
 
 # Azure Integration Strategy
