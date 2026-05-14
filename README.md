@@ -2,7 +2,11 @@
 
 **Government Federated Low-Code Operations Framework**
 
-📖 **[govflowhq.com](https://govflowhq.com)**
+[![docs](https://img.shields.io/badge/docs-govflowhq.com-blue)](https://govflowhq.com)
+[![GitHub Pages](https://img.shields.io/badge/GitHub%20Pages-live-blue)](https://devonaleshiremsft.github.io/gov-flow/)
+[![Framework](https://img.shields.io/badge/Framework-GCC%20High%20%2F%20DoD-purple)](https://govflowhq.com)
+[![LP-ALM](https://img.shields.io/badge/companion-LP--ALM-green)](https://devonaleshiremsft.github.io/layered-platform-alm/)
+[![Power Monitoring](https://img.shields.io/badge/companion-Power%20Monitoring%20Framework-green)](https://devonaleshiremsft.github.io/power-monitoring-framework/)
 
 ---
 
