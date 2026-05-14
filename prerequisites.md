@@ -76,15 +76,17 @@ npm install -g pac
 - The MSI installer requires local admin — submit a software request if needed
 - Verify installation: `pac help`
 
-**GCC High authentication:**
+**Government cloud authentication:**
 
-PAC CLI must be pointed at the GCC High endpoint, not commercial:
+PAC CLI must be pointed at the correct government endpoint, not commercial:
 
 ```powershell
+# GCC High
 pac auth create --environment https://gcc.admin.powerplatform.microsoft.us --cloud UsGov
-```
 
-For IL5 environments, use `--cloud UsGovDoD`.
+# DoD (IL5)
+pac auth create --environment https://dod.admin.powerplatform.microsoft.us --cloud UsGovDoD
+```
 
 ---
 
@@ -225,17 +227,18 @@ Pipeline service accounts should **not** use PIM — automated pipelines cannot 
 
 ## Network and endpoint access
 
-GCC High endpoints must be reachable from your workstation. The following are commonly blocked by DoD proxy or firewall configurations and may require a firewall exception request.
+The following endpoints must be reachable from your workstation. GCC High and DoD use different URLs for several services. Confirm which cloud your tenant is on and request firewall exceptions accordingly — these are commonly blocked by DoD proxy configurations.
 
-| Endpoint | Purpose | Required for |
+| Purpose | GCC High | DoD |
 |---|---|---|
-| `https://gcc.admin.powerplatform.microsoft.us` | Power Platform Admin Center | Admin operations, PAC CLI |
-| `https://*.crm9.dynamics.com` | GCC High Dataverse environments | PAC CLI, Power Automate, model-driven apps |
-| `https://*.api.powerplatform.com` | Power Platform API | PAC CLI admin commands |
-| `https://login.microsoftonline.us` | GCC High authentication | All GCC High services |
-| `https://dev.azure.com` or your ADO GCC High URL | Azure DevOps | Pipeline execution |
-| `https://management.usgovcloudapi.net` | Azure Government management | Azure CLI, Az PowerShell |
-| `https://*.openai.azure.us` | Azure Government OpenAI | AI workload operations |
+| Power Platform Admin Center | `gcc.admin.powerplatform.microsoft.us` | `dod.admin.powerplatform.microsoft.us` |
+| Dataverse environments | `*.crm9.dynamics.com` | `*.crm.microsoftdynamics.us` |
+| Power Platform API | `*.api.powerplatform.com` | `*.api.powerplatform.com` |
+| Authentication (Entra ID) | `login.microsoftonline.us` | `login.microsoftonline.us` |
+| Entra ID portal | `entra.microsoft.us` | `entra.microsoft.us` |
+| Azure DevOps | `dev.azure.com` or org ADO URL | `dev.azure.com` or org ADO URL |
+| Azure Government management | `management.usgovcloudapi.net` | `management.usgovcloudapi.net` |
+| Azure Government OpenAI | `*.openai.azure.us` | `*.openai.azure.us` |
 
 {: .note }
 > If you are working through a DoD proxy, configure PAC CLI and Azure CLI to use it:
@@ -249,7 +252,7 @@ GCC High endpoints must be reachable from your workstation. The following are co
 ## Onboarding checklist for new platform engineers
 
 - [ ] VS Code installed with Power Platform Tools, YAML, and GitLens extensions
-- [ ] PAC CLI installed and authenticated to GCC High tenant (`pac auth list`)
+- [ ] PAC CLI installed and authenticated to GCC High or DoD tenant (`pac auth list`)
 - [ ] Power Platform Admin PowerShell module installed (`Get-AdminPowerAppEnvironment` runs without error)
 - [ ] Git configured with name and email (`git config --global user.name`, `git config --global user.email`)
 - [ ] PIM-eligible Power Platform Administrator role assigned (ticket submitted and approved)
@@ -257,4 +260,4 @@ GCC High endpoints must be reachable from your workstation. The following are co
 - [ ] Access to CoE Starter Kit Power BI workspace confirmed
 - [ ] Azure Government subscription access confirmed (if managing Azure AI resources)
 - [ ] Break-glass account documented and tested (platform lead only)
-- [ ] Firewall/proxy exceptions confirmed for GCC High endpoints listed above
+- [ ] Firewall/proxy exceptions confirmed for GCC High / DoD endpoints listed above

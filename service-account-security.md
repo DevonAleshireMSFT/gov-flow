@@ -25,7 +25,7 @@ Power Platform solutions rely on connections — to Dataverse, SharePoint, Excha
 
 In a DoD organization, personnel turnover is not an edge case. It is a constant. A service account strategy is not optional infrastructure — it is a continuity control.
 
-Beyond continuity, service accounts in GCC High environments serve a second purpose: **ATO supportability**. An ATO package that documents "flows run under individual contractor accounts" cannot be defended. An ATO package that documents named service accounts with defined roles, rotation schedules, and audit trails can be.
+Beyond continuity, service accounts in GCC High and DoD environments serve a second purpose: **ATO supportability**. An ATO package that documents "flows run under individual contractor accounts" cannot be defended. An ATO package that documents named service accounts with defined roles, rotation schedules, and audit trails can be.
 
 {: .important }
 > Every production Power Automate flow, every scheduled process, and every pipeline step that interacts with a Dataverse environment must run under a dedicated service account — not a personal user account. This is a non-negotiable baseline for enterprise government environments.
@@ -112,7 +112,7 @@ Where possible, replace Power Platform Admin with the more scoped **Environment 
 | Certificate-based authentication | Annual or per certificate validity period | Preferred over passwords for pipeline accounts |
 
 {: .warning }
-> Service account password expiry causes silent failures in Power Automate flows — flows fail with a connection error, not an authentication error. This is a common production issue that goes undetected until users report it. Set monitoring alerts on flow failure rates and connection health in CoE Starter Kit dashboards.
+> Service account password expiry causes silent failures in Power Automate flows — flows fail with a connection error, not an authentication error. This is a common production issue that goes undetected until users report it. Set monitoring alerts on flow failure rates and connection health using the [Power Monitoring Framework](https://devonaleshiremsft.github.io/power-monitoring-framework/) — a companion framework purpose-built for operational monitoring of government Power Platform environments.
 
 ### Rotation procedure
 
@@ -291,19 +291,21 @@ Configure alerts for service account anomalies:
 
 ---
 
-## GCC High and IL5 specific requirements
+## GCC High / DoD and IL5 specific requirements
 
-### Licensing in GCC High
+### Licensing in GCC High / DoD
 
-Service accounts must hold an appropriate Power Platform license. Unlicensed service accounts in GCC High will fail at runtime with a licensing error that is difficult to diagnose.
+Service accounts must hold an appropriate Power Platform license. Unlicensed service accounts in GCC High / DoD tenants will fail at runtime with a licensing error that is difficult to diagnose.
 
 - Power Automate Premium (or Power Platform per-user plan with attended RPA) is required for flows using premium connectors
-- The license must be assigned in the GCC High tenant admin center (`gcc.admin.microsoft.us`) — commercial license assignments do not carry over
+- Licenses must be assigned in the government tenant admin center — commercial license assignments do not carry over:
+  - GCC High: `gcc.admin.microsoft.us`
+  - DoD: `dod.admin.microsoft.us`
 - For IL5 environments, confirm license types are authorized at IL5 before assigning
 
 ### Conditional Access for service accounts
 
-GCC High Conditional Access policies must explicitly account for service accounts. A blanket "require MFA" policy that applies to service accounts will break unattended flows.
+GCC High / DoD Conditional Access policies must explicitly account for service accounts. A blanket "require MFA" policy that applies to service accounts will break unattended flows.
 
 Recommended approach:
 - Create a **named location** for Azure Government service IPs (the IPs from which flows run)
