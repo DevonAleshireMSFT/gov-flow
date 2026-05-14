@@ -81,7 +81,7 @@ The federated model addresses both: documentation and ALM discipline are enforce
 
 ### 2.1 Tenant Segmentation
 
-**One GCC High tenant per branch/agency is the recommended model.** Running multiple GCC High tenants within a single organizational branch (e.g., one for FORSCOM and one for TRADOC within Army) creates federation complexity that eliminates most of the platform-level governance benefits.
+This framework assumes a **single government tenant** as the foundation. One tenant per branch or agency is the recommended model — running multiple tenants within a single organization creates federation complexity that eliminates most of the platform-level governance benefits. While the patterns here are written with GCC-High and DoD in mind, they apply equally to any government or federal Power Platform deployment.
 
 Cross-command isolation within a single tenant is achieved through:
 - Managed Environments with environment-level access control
@@ -89,7 +89,7 @@ Cross-command isolation within a single tenant is achieved through:
 - DLP policies scoped to environment groups
 - Azure AD / Entra group ownership per command
 
-> **IL5 consideration:** Not all workloads in a GCC High tenant run at IL5. IL5 authorization requires a DISA provisional authorization and specific Dataverse environment configuration. Separate IL5-designated environments from general-purpose environments within the same tenant. Mixing IL5 and non-IL5 workloads in the same environment is not authorized.
+> **IL5 consideration:** Not all workloads in a government tenant run at IL5. IL5 authorization requires a DISA provisional authorization and specific Dataverse environment configuration. Separate IL5-designated environments from general-purpose environments within the same tenant. Mixing IL5 and non-IL5 workloads in the same environment is not authorized.
 
 > **Default environment:** The default environment is not suitable for enterprise production applications. See [Default Environment Governance](../default-environment/) for risks, limitations, and the recommended approach for org-wide application access.
 
