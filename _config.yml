@@ -9,6 +9,8 @@ url: "https://govflowhq.com"
 
 theme: just-the-docs
 
+logo: "/assets/images/govflow-logo.png"
+
 # GitHub repository link (top-right)
 aux_links:
   "GitHub":
