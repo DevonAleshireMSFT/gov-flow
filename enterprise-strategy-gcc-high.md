@@ -359,15 +359,59 @@ Do not build this process in email. The request, approval, provisioning, and not
 
 ### 2.9 Managed Environments
 
-Activate Managed Environments for **all** non-sandbox environments. Managed Environments provide:
-- Sharing limits (restrict canvas app sharing to security groups only)
-- Solution checker enforcement on import
-- Weekly environment activity digest for the CoE
-- Maker welcome content (onboarding guidance for developers)
-- IP firewall (available in GCC High / DoD — use for IL5 environments)
-- Pipelines (Power Platform Pipelines as an alternative to ADO for citizen developer deployments)
+**Reality check: Managed Environments require licensing.** A Managed Environment requires at least one qualifying Power Platform premium license in the environment (Power Apps Premium, Power Automate Premium, Power Apps Per App, Dynamics 365, or Copilot Studio). At DoD scale — where many users hold M365 E3/E5 licenses without Power Platform Premium — assuming universal Managed Environment coverage is unrealistic. Every governance plan must account for a mixed Managed and Unmanaged environment estate.
 
-In GCC High and DoD, Managed Environments are available and FedRAMP / IL5 authorized. Activate at the tenant level by default.
+**The target is Managed Environments everywhere. The operational reality is a hybrid model.** Plan for it deliberately rather than discovering unmanaged environments during an ATO review.
+
+#### What Managed Environments Add
+
+| Capability | Managed | Unmanaged |
+|---|---|---|
+| Environment group DLP targeting | Yes | No — explicit named policy only |
+| Canvas app sharing limits (restrict to security groups) | Yes | No |
+| Solution checker enforcement on import | Yes | No |
+| IP firewall (IL5 network boundary enforcement) | Yes | No |
+| Weekly environment activity digest (CoE) | Yes | No |
+| Maker welcome / onboarding content | Yes | No |
+| Power Platform Pipelines | Yes | No |
+| **DLP policy enforcement** | **Yes** | **Yes — DLP applies to all environments regardless of Managed status** |
+| Security group assignment | Yes | Yes |
+
+The bolded row is the governance foundation for unmanaged environments: **DLP enforcement is not contingent on Managed Environment licensing.** Every environment — Managed or not — is subject to the tenant's DLP policies. This is the primary technical control available across the entire estate.
+
+#### Prioritization: Which Environments Must Be Managed
+
+In a resource-constrained DoD organization, prioritize Managed Environment activation in this order:
+
+| Priority | Environment Types | Rationale |
+|---|---|---|
+| **Must** | All Production (`{CMD}-{PGM}-PROD`) | ATO boundary; sharing limits prevent accidental data exposure; IP firewall for IL5 |
+| **Must** | CoE-Admin, CoE-Dev | Platform governance tools require solution checker enforcement and sharing limits |
+| **Must** | ENTERPRISE-PROD, SharedSvc-Prod | Cross-organizational impact; group DLP targeting required; sharing limits mandatory |
+| **Should** | All Test (`{CMD}-{PGM}-TEST`) | Solution checker validates managed deployment path; pipeline enforcement |
+| **Should** | Program Dev (`{CMD}-{PGM}-DEV`) | Solution checker catches issues before Test; developer sharing limits |
+| **Accept Unmanaged** | Program Sandbox (`{CMD}-{PGM}-SANDBOX`) | Short 30–90 day lifecycle; DLP + security group sufficient; no ATO coverage |
+| **Accept Unmanaged** | Individual Dev (`{USERALIAS}-Dev`) | Personal scope; no ATO coverage; DLP + security group sufficient |
+
+When a **Should** environment cannot be Managed due to licensing constraints, document the unmanaged status in the environment register and apply compensating controls:
+- Assign the environment security group to restrict access
+- Apply an explicit named DLP policy targeting that environment by name (see §3.4)
+- Enroll in the CoE Starter Kit inventory for activity monitoring
+- Add to the quarterly manual governance review cadence (§7.3)
+
+#### Governing Unmanaged Environments
+
+An unmanaged environment is not an ungoverned environment. The absence of Managed Environment features requires explicit compensating controls.
+
+| Missing Managed Feature | Compensating Control |
+|---|---|
+| Sharing limits | DLP blocks data exfiltration paths; CoE Starter Kit periodic sharing audit |
+| Solution checker on import | PAC CLI solution checker in the ALM pipeline pre-export; developer discipline enforced by code review |
+| IP firewall | Conditional Access policy (device compliance, CONUS location); agency network perimeter controls |
+| Group-based DLP targeting | Named DLP policy explicitly referencing the environment; must be updated as environments are provisioned |
+| Weekly activity digest | CoE Starter Kit environment activity reports (covers all environments, Managed and Unmanaged) |
+
+**Never allow an unmanaged environment to exist outside the Environment Register.** Every environment must have a record with its classification, owner, DLP policy assignment, Managed status, and review date. An unmanaged environment that falls off the register is indistinguishable from a shadow environment.
 
 ---
 
@@ -459,18 +503,60 @@ DLP policies are the primary technical control governing which connectors are av
 
 **GovFlow DLP operates on a default-deny model:** every connector not explicitly approved is blocked. New connectors added to the Power Platform catalog are blocked by default until reviewed by the Platform CoE. "Not yet reviewed" means blocked, not allowed.
 
-The recommended architecture has three policy tiers:
+**DLP enforcement is independent of Managed Environment status.** This is the foundational architectural property that makes DLP the primary governance control across the entire estate. Whether an environment is Managed or not, all applicable DLP policies are enforced. Managed Environments add environment group targeting and additional governance features on top — they do not change whether DLP is enforced.
 
-| Tier | Scope | Restrictiveness |
+#### DLP Policy Layers
+
+| Layer | Mechanism | Applies To |
 |---|---|---|
-| **Tenant Default** | All environments not covered by a specific group policy | Most restrictive — Microsoft 365 core in Business; all third-party blocked |
-| **Environment-Group Policy** | Managed Environment groups by type (Dev, Test, Prod, Enterprise) | Tiered by environment type; production is never more permissive than test |
-| **Program Exception** | Specific environment; rare; 90-day review cycle | ISSO + Platform CoE approval required; time-limited |
+| **Tenant Default** | Single policy, most restrictive; Microsoft 365 core in Business group only; all else blocked | Every environment not covered by a more specific policy — the automatic catch-all |
+| **Environment Group Policy** | Policy scoped to a Managed Environment group | All environments in that group; automatically applies when an environment joins the group. **Requires Managed Environments.** |
+| **Named Environment Policy** | Policy explicitly listing one or more environments by name | Exact environments named only; must be maintained manually as environments are created or decommissioned |
+| **Exception Policy** | Named policy; time-limited 90-day cycle; ISSO + CoE approved | Specific environment; specific connector only; tracked in the Exception Register |
+
+Managed Environments use environment groups for DLP targeting — add the environment to a group and it automatically inherits the group's policy. **Unmanaged environments cannot join environment groups.** They receive either the Tenant Default or an explicit Named Environment Policy. This means unmanaged environment DLP requires a disciplined provisioning process: every new unmanaged environment must be added to its named policy at creation time (see §2.8 intake workflow).
+
+#### DLP Tier by Environment Type
+
+| Environment Type | DLP Tier | Targeting Method | Key Rules |
+|---|---|---|---|
+| **Individual Dev** (`{USERALIAS}-Dev`) | Developer | Named policy (list by name at provisioning) | All approved first-party Microsoft connectors; no HTTP outbound to external endpoints; no third-party; no custom unless explicitly approved |
+| **Program Sandbox** (`{CMD}-{PGM}-SANDBOX`) | Sandbox | Named policy, or Tenant Default acceptable for short lifecycle | First-party Microsoft + program-approved Azure services; HTTP blocked; no third-party |
+| **Program Dev** (`{CMD}-{PGM}-DEV`) | Development | Environment group (Managed) or named policy | First-party Microsoft + all program-approved integration connectors; HTTP to approved Azure Government endpoints only |
+| **Program Test** (`{CMD}-{PGM}-TEST`) | **Must match Production exactly** | Environment group (Managed) or named policy | Same connector set as the program's Production environment — any deviation invalidates test coverage |
+| **Program Production** (`{CMD}-{PGM}-PROD`) | Production | Environment group (Managed — required) | ATO-documented connectors only; ISSO-reviewed connector list; no additions without ISSO review and change control |
+| **Shared Services** (`SharedSvc-PROD/DEV`) | Enterprise | Environment group (Managed — required) | Cross-organizational connectors approved at Platform-ATO level; validated against GCC High data residency |
+| **ENTERPRISE-PROD** | Enterprise | Environment group (Managed — required) | Match or exceed Production; Platform-ATO boundary validated; broadest org exposure justifies strictest controls |
+| **CoE-Admin / CoE-Dev** | Platform | Environment group (Managed — required) | Power Platform Admin connector, HTTP to Azure Government; isolated from program DLP tiers; CoE staff only |
+| **Default (catch-all)** | Tenant Default | Automatic — no configuration required | Microsoft 365 core connectors only; everything else blocked; applies to any environment not explicitly covered |
+
+{: .important }
+> **Test must mirror Production DLP.** A connector blocked in Production but allowed in Test produces false-positive test results. DLP policy misalignment between Test and Production is a deployment risk that surfaces at go-live, not in testing. Manage Test and Production in the same environment group where possible, or through synchronized named policies where Managed Environments are unavailable.
+
+#### Base Policy + Program Overlay Model
+
+The recommended structure is a layered composition: a **base tier policy** applied to each environment group, with **program-specific exception policies** applied on top for connectors needed by one program that are not in the standard tier.
+
+```
+Tenant Default  (most restrictive — automatic catch-all for unlisted environments)
+    │
+    ├── Developer Group Policy     →  Individual Dev environments
+    ├── Sandbox Group Policy       →  Program Sandbox environments (if Managed)
+    ├── Development Group Policy   →  Program Dev environments
+    ├── Test/Prod Group Policy     →  Program Test + Prod (identical policy, same group)
+    ├── Enterprise Group Policy    →  Shared Services + ENTERPRISE-PROD
+    └── Platform Group Policy      →  CoE-Admin + CoE-Dev
+                │
+                └── Program Exception Policy (named, 90-day, ISSO approved)
+                    → One specific connector approved for one program's specific environment
+```
+
+**Program exceptions are the pressure valve.** When a program needs a connector outside the standard tier for their environment type, they submit a connector approval request (see [DLP Strategy — Connector Request Process](../dlp-strategy/)) and receive a named exception policy targeting their specific environment. Exceptions are time-limited, ISSO-reviewed, and tracked in the Exception Register.
 
 {: .warning }
 > **IL5 validation required:** Not all Microsoft 365 connectors route data through the GCC High or DoD boundary. Validate each connector's data residency documentation against your ATO boundary before approving at any tier.
 
-For the full DLP governance model — including connector approval workflow, custom connector requirements, HTTP trigger policy, premium connector governance, and operational recommendations — see the dedicated [DLP Strategy](../dlp-strategy/) page.
+For the full DLP governance model — connector approval workflow, custom connector requirements, HTTP trigger policy, premium connector governance, and connector catalog management — see the dedicated [DLP Strategy](../dlp-strategy/) page.
 
 ### 3.5 Identity and Access Management
 
