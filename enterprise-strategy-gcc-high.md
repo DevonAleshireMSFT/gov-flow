@@ -1,7 +1,7 @@
 ---
 layout: default
 title: Enterprise Strategy
-nav_order: 4
+nav_order: 5
 permalink: /enterprise-strategy/
 ---
 
@@ -154,13 +154,95 @@ At large DoD organization scale, expect 50–200+ production environments over a
 
 > **Capacity note:** Each Dataverse environment carries a 1 GB base storage requirement. Environment sprawl has a direct licensing cost — factor this into your provisioning approval process.
 
-### 2.5 Naming Standards
+### 2.5 Individual Developer Environments
+
+Individual developer environments are personal, single-occupant environments provisioned to a named developer for isolated experimentation, proof-of-concept work, or active development on a specific workload before a program-level Dev environment exists. They sit below the program tier — not a team resource, not tied to an ATO, not used for integration testing.
+
+#### When a developer needs one
+
+An individual developer environment is appropriate when:
+
+- **No program Dev environment exists yet.** A developer has been tasked with building a new solution but the program environment request is still in the approval pipeline. Rather than blocking work, the developer provisions a personal environment to begin canvas app scaffolding, data model design, or flow prototyping.
+- **Isolated spike or proof-of-concept work.** The developer is evaluating a connector, a new Dataverse feature, or an architectural pattern that should not contaminate the shared team Dev environment with experimental tables or flows.
+- **Assigned to multiple programs.** A pro developer supporting two different programs simultaneously cannot cleanly separate work in a single program Dev environment. A personal environment per active engagement reduces cross-contamination risk.
+- **Component library or reusable code development.** A developer building a shared canvas component or a reusable cloud flow pattern benefits from a clean isolated environment before contributing to the shared layer.
+
+#### When a developer does not need one
+
+Individual developer environments are **not** appropriate as a substitute for:
+
+- **Integration testing.** Integration testing belongs in the program's `{CMD}-{PGM}-TEST` environment. A personal dev environment has no service principals, no pipeline configuration, and no representative data model for integration work.
+- **User acceptance testing.** Any testing involving end users must be in a CoE-approved Test or UAT environment. Sharing a personal dev environment with stakeholders is a governance violation.
+- **Permanent development work.** If a solution is in active team development, the program Dev environment is the right home. Personal environments that become de facto team Dev environments are an unmanaged sprawl risk.
+- **Production data of any classification.** Individual developer environments receive the Developer DLP tier — which restricts production data connectors. Placing CUI or higher-classification data in a personal environment is a compliance violation regardless of DLP policy.
+
+#### Naming convention
+
+Individual developer environments follow a distinct pattern to distinguish them from program environments in policy targeting and the environment register:
+
+```
+{USERALIAS}-Dev
+```
+
+| Example | Developer |
+|---|---|
+| `jsmith-Dev` | James Smith |
+| `mlopez-Dev` | Maria Lopez |
+| `rwilliams-Dev` | Robert Williams |
+
+**Rules:**
+- Use the developer's network/email alias (characters before `@`), lowercased.
+- Single suffix: `-Dev` only. No `{USERALIAS}-Test`, `{USERALIAS}-Prod` — those tiers do not exist at the individual level.
+- Maximum 40 characters (Power Platform display name limit). Truncate alias if needed.
+- Individual dev environments are **not targeted by program DLP policies** — they receive the tenant-wide Developer DLP policy tier (see [DLP Strategy — Developer tier](../dlp-strategy/)).
+
+#### How many per developer
+
+| Rule | Limit | Rationale |
+|---|---|---|
+| **Default limit** | **1 per developer** | One personal dev environment is sufficient for the vast majority of individual development work. Multiple simultaneous personal environments are a sprawl indicator. |
+| **Exception: active multi-program engagement** | Up to **2** | A developer actively supporting two distinct programs with no overlap may request a second individual dev environment. This requires CoE approval with documentation of both program assignments. |
+| **Hard maximum** | **2 per developer** | No individual developer should hold more than 2 active personal dev environments at any time. If a developer needs more, that signals missing program-level environments — fix the root cause. |
+
+The CoE should track individual developer environment count in the Environment Register. Environment sprawl at the individual tier is a common early-stage governance failure in DoD tenants — developers provision environments, finish the work, and never decommission them.
+
+#### Lifecycle
+
+Individual developer environments are **project-scoped**, not indefinite.
+
+| Stage | Action |
+|---|---|
+| **Provision** | Developer submits request via CoE intake app. Approval is lightweight — CoE validates naming, license availability, and that no duplicate personal environment exists. Target: same-day provisioning. |
+| **Active use** | Environment exists for the duration of the development spike or until the program Dev environment is provisioned and the developer has migrated work. |
+| **Expiry** | Individual dev environments carry a **90-day lifecycle** from provisioning date. At day 75, the developer receives an automated renewal-or-decommission notification. |
+| **Renewal** | Developer may request a single 90-day extension with a brief justification. Second renewal requires CoE review. |
+| **Decommission** | Developer confirms any work-in-progress has been exported to source control or migrated. CoE deletes the environment within 5 business days of confirmation or expiry — whichever comes first. |
+
+**There is no grace period for expired individual developer environments that have not responded to renewal notice.** Unresponsive environments are deleted at expiry. This is not punitive — it is the baseline hygiene that prevents 200+ orphaned environments at scale.
+
+#### Relationship to the Sandbox tier
+
+Individual developer environments and sandbox environments serve different purposes and should not be used interchangeably:
+
+| | Individual Dev (`{USERALIAS}-Dev`) | Program Sandbox (`{CMD}-{PGM}-SANDBOX`) |
+|---|---|---|
+| **Owner** | Named developer | Program team |
+| **Access** | Developer only | Program team members |
+| **Purpose** | Personal isolated development | Team-level exploration, POC with stakeholders |
+| **Managed Environment** | No | No |
+| **DLP tier** | Developer (personal tier) | Sandbox (team tier) |
+| **Lifecycle** | 90 days (renewable once) | 30–90 days (no renewal) |
+| **Count limit** | 1–2 per developer | 1 per program per active initiative |
+
+When a developer needs to demo prototype work to stakeholders or a program team, that work should move into the program Sandbox — not be shared out of a personal dev environment.
+
+### 2.6 Naming Standards
 
 Good names matter more than perfect names. Consistent naming enables DLP policy targeting, pipeline environment resolution, Managed Environment grouping, and audit attribution. A cryptic or inconsistent name breaks automation and slows incident response. At the same time, a naming scheme that becomes a 45-character string no one can type from memory will simply be ignored. Pick a convention, document it, enforce it at the environment tier, and keep everything else as readable guidance.
 
 > **Don't overcomplicate it.** Environment names are the most critical — they are targeted by policy and pipelines. Application and flow names are user-facing — readability matters more than codes at that level. Component naming is internal to an app — consistency within the app is the only real requirement.
 
-#### Environment Naming
+### Environment Naming
 
 Environment names are the one place to be strict. They are matched by DLP policies, CoE connectors, and ALM pipelines. An inconsistent environment name means a DLP rule misses it.
 
@@ -188,7 +270,7 @@ PLATFORM-SHAREDSVC-PROD
 - `{PROGRAM}` = 4–8 character program code; matches Azure DevOps project name
 - `{TYPE}` = DEV, TEST, PROD, SANDBOX, ADMIN — spell it out, no abbreviations
 
-#### Solution Naming
+### Solution Naming
 
 Solutions map to deployment units, not layers. One solution per deployable chunk of a program.
 
@@ -202,7 +284,7 @@ Solutions map to deployment units, not layers. One solution per deployable chunk
 
 Keep solution names under 30 characters. Avoid embedding environment type in the solution name — that belongs in the environment, not the solution.
 
-#### Application Naming
+### Application Naming
 
 Users see application names in their launcher. Prioritize readability over abbreviation codes.
 
@@ -212,7 +294,7 @@ Examples: `SYSTRK Ticket Tracker`, `SYSTRK Admin Portal`, `NETC Training Manager
 
 The program prefix keeps apps sortable and attributable without sacrificing usability.
 
-#### Flow Naming
+### Flow Naming
 
 Flows have no namespace in Power Automate. The program prefix is the only thing that groups and attributes them.
 
@@ -222,7 +304,7 @@ Examples: `SYSTRK - New Ticket - Notify Approver`, `SYSTRK - Daily - Archive Clo
 
 Avoid vague names like "Approval Flow" or "Send Email" — they become impossible to manage at scale.
 
-#### Component Naming (Controls, Variables, Collections)
+### Component Naming (Controls, Variables, Collections)
 
 This is internal to the app. The only rule is: be consistent within the app. A recommended prefix convention:
 
@@ -237,7 +319,7 @@ This is internal to the app. The only rule is: be consistent within the app. A r
 
 Use camelCase after the prefix. This is a recommendation — adapt to your team's standard if one already exists. The goal is that the next developer can read your app without a map.
 
-### 2.6 Environment Lifecycle Management
+### 2.7 Environment Lifecycle Management
 
 **Sandbox environments** are the highest-risk category for sprawl. Enforce:
 - Maximum 90-day lifecycle (hard-delete via Power Platform admin API on expiry)
@@ -253,7 +335,7 @@ Use camelCase after the prefix. This is a recommendation — adapt to your team'
 
 **Production environment deletion** requires ISSO sign-off, data disposal documentation per NIST 800-88, and CoE review board approval.
 
-### 2.7 Environment Request and Approval Process
+### 2.8 Environment Request and Approval Process
 
 ```
 Developer/PM submits request (Power Apps form in CoE-Admin)
@@ -275,17 +357,61 @@ Owner team notified with onboarding checklist
 
 Do not build this process in email. The request, approval, provisioning, and notification should all be automated through a CoE intake application. Manual email-based processes do not scale past 20 programs.
 
-### 2.8 Managed Environments
+### 2.9 Managed Environments
 
-Activate Managed Environments for **all** non-sandbox environments. Managed Environments provide:
-- Sharing limits (restrict canvas app sharing to security groups only)
-- Solution checker enforcement on import
-- Weekly environment activity digest for the CoE
-- Maker welcome content (onboarding guidance for developers)
-- IP firewall (available in GCC High / DoD — use for IL5 environments)
-- Pipelines (Power Platform Pipelines as an alternative to ADO for citizen developer deployments)
+**Reality check: Managed Environments require licensing.** A Managed Environment requires at least one qualifying Power Platform premium license in the environment (Power Apps Premium, Power Automate Premium, Power Apps Per App, Dynamics 365, or Copilot Studio). At DoD scale — where many users hold M365 E3/E5 licenses without Power Platform Premium — assuming universal Managed Environment coverage is unrealistic. Every governance plan must account for a mixed Managed and Unmanaged environment estate.
 
-In GCC High and DoD, Managed Environments are available and FedRAMP / IL5 authorized. Activate at the tenant level by default.
+**The target is Managed Environments everywhere. The operational reality is a hybrid model.** Plan for it deliberately rather than discovering unmanaged environments during an ATO review.
+
+#### What Managed Environments Add
+
+| Capability | Managed | Unmanaged |
+|---|---|---|
+| Environment group DLP targeting | Yes | No — explicit named policy only |
+| Canvas app sharing limits (restrict to security groups) | Yes | No |
+| Solution checker enforcement on import | Yes | No |
+| IP firewall (IL5 network boundary enforcement) | Yes | No |
+| Weekly environment activity digest (CoE) | Yes | No |
+| Maker welcome / onboarding content | Yes | No |
+| Power Platform Pipelines | Yes | No |
+| **DLP policy enforcement** | **Yes** | **Yes — DLP applies to all environments regardless of Managed status** |
+| Security group assignment | Yes | Yes |
+
+The bolded row is the governance foundation for unmanaged environments: **DLP enforcement is not contingent on Managed Environment licensing.** Every environment — Managed or not — is subject to the tenant's DLP policies. This is the primary technical control available across the entire estate.
+
+#### Prioritization: Which Environments Must Be Managed
+
+In a resource-constrained DoD organization, prioritize Managed Environment activation in this order:
+
+| Priority | Environment Types | Rationale |
+|---|---|---|
+| **Must** | All Production (`{CMD}-{PGM}-PROD`) | ATO boundary; sharing limits prevent accidental data exposure; IP firewall for IL5 |
+| **Must** | CoE-Admin, CoE-Dev | Platform governance tools require solution checker enforcement and sharing limits |
+| **Must** | ENTERPRISE-PROD, SharedSvc-Prod | Cross-organizational impact; group DLP targeting required; sharing limits mandatory |
+| **Should** | All Test (`{CMD}-{PGM}-TEST`) | Solution checker validates managed deployment path; pipeline enforcement |
+| **Should** | Program Dev (`{CMD}-{PGM}-DEV`) | Solution checker catches issues before Test; developer sharing limits |
+| **Accept Unmanaged** | Program Sandbox (`{CMD}-{PGM}-SANDBOX`) | Short 30–90 day lifecycle; DLP + security group sufficient; no ATO coverage |
+| **Accept Unmanaged** | Individual Dev (`{USERALIAS}-Dev`) | Personal scope; no ATO coverage; DLP + security group sufficient |
+
+When a **Should** environment cannot be Managed due to licensing constraints, document the unmanaged status in the environment register and apply compensating controls:
+- Assign the environment security group to restrict access
+- Apply an explicit named DLP policy targeting that environment by name (see §3.4)
+- Enroll in the CoE Starter Kit inventory for activity monitoring
+- Add to the quarterly manual governance review cadence (§7.3)
+
+#### Governing Unmanaged Environments
+
+An unmanaged environment is not an ungoverned environment. The absence of Managed Environment features requires explicit compensating controls.
+
+| Missing Managed Feature | Compensating Control |
+|---|---|
+| Sharing limits | DLP blocks data exfiltration paths; CoE Starter Kit periodic sharing audit |
+| Solution checker on import | PAC CLI solution checker in the ALM pipeline pre-export; developer discipline enforced by code review |
+| IP firewall | Conditional Access policy (device compliance, CONUS location); agency network perimeter controls |
+| Group-based DLP targeting | Named DLP policy explicitly referencing the environment; must be updated as environments are provisioned |
+| Weekly activity digest | CoE Starter Kit environment activity reports (covers all environments, Managed and Unmanaged) |
+
+**Never allow an unmanaged environment to exist outside the Environment Register.** Every environment must have a record with its classification, owner, DLP policy assignment, Managed status, and review date. An unmanaged environment that falls off the register is indistinguishable from a shadow environment.
 
 ---
 
@@ -377,35 +503,166 @@ DLP policies are the primary technical control governing which connectors are av
 
 **GovFlow DLP operates on a default-deny model:** every connector not explicitly approved is blocked. New connectors added to the Power Platform catalog are blocked by default until reviewed by the Platform CoE. "Not yet reviewed" means blocked, not allowed.
 
-The recommended architecture has three policy tiers:
+**DLP enforcement is independent of Managed Environment status.** This is the foundational architectural property that makes DLP the primary governance control across the entire estate. Whether an environment is Managed or not, all applicable DLP policies are enforced. Managed Environments add environment group targeting and additional governance features on top — they do not change whether DLP is enforced.
 
-| Tier | Scope | Restrictiveness |
+#### DLP Policy Layers
+
+| Layer | Mechanism | Applies To |
 |---|---|---|
-| **Tenant Default** | All environments not covered by a specific group policy | Most restrictive — Microsoft 365 core in Business; all third-party blocked |
-| **Environment-Group Policy** | Managed Environment groups by type (Dev, Test, Prod, Enterprise) | Tiered by environment type; production is never more permissive than test |
-| **Program Exception** | Specific environment; rare; 90-day review cycle | ISSO + Platform CoE approval required; time-limited |
+| **Tenant Default** | Single policy, most restrictive; Microsoft 365 core in Business group only; all else blocked | Every environment not covered by a more specific policy — the automatic catch-all |
+| **Environment Group Policy** | Policy scoped to a Managed Environment group | All environments in that group; automatically applies when an environment joins the group. **Requires Managed Environments.** |
+| **Named Environment Policy** | Policy explicitly listing one or more environments by name | Exact environments named only; must be maintained manually as environments are created or decommissioned |
+| **Exception Policy** | Named policy; time-limited 90-day cycle; ISSO + CoE approved | Specific environment; specific connector only; tracked in the Exception Register |
+
+Managed Environments use environment groups for DLP targeting — add the environment to a group and it automatically inherits the group's policy. **Unmanaged environments cannot join environment groups.** They receive either the Tenant Default or an explicit Named Environment Policy. This means unmanaged environment DLP requires a disciplined provisioning process: every new unmanaged environment must be added to its named policy at creation time (see §2.8 intake workflow).
+
+#### DLP Tier by Environment Type
+
+| Environment Type | DLP Tier | Targeting Method | Key Rules |
+|---|---|---|---|
+| **Individual Dev** (`{USERALIAS}-Dev`) | Developer | Named policy (list by name at provisioning) | All approved first-party Microsoft connectors; no HTTP outbound to external endpoints; no third-party; no custom unless explicitly approved |
+| **Program Sandbox** (`{CMD}-{PGM}-SANDBOX`) | Sandbox | Named policy, or Tenant Default acceptable for short lifecycle | First-party Microsoft + program-approved Azure services; HTTP blocked; no third-party |
+| **Program Dev** (`{CMD}-{PGM}-DEV`) | Development | Environment group (Managed) or named policy | First-party Microsoft + all program-approved integration connectors; HTTP to approved Azure Government endpoints only |
+| **Program Test** (`{CMD}-{PGM}-TEST`) | **Must match Production exactly** | Environment group (Managed) or named policy | Same connector set as the program's Production environment — any deviation invalidates test coverage |
+| **Program Production** (`{CMD}-{PGM}-PROD`) | Production | Environment group (Managed — required) | ATO-documented connectors only; ISSO-reviewed connector list; no additions without ISSO review and change control |
+| **Shared Services** (`SharedSvc-PROD/DEV`) | Enterprise | Environment group (Managed — required) | Cross-organizational connectors approved at Platform-ATO level; validated against GCC High data residency |
+| **ENTERPRISE-PROD** | Enterprise | Environment group (Managed — required) | Match or exceed Production; Platform-ATO boundary validated; broadest org exposure justifies strictest controls |
+| **CoE-Admin / CoE-Dev** | Platform | Environment group (Managed — required) | Power Platform Admin connector, HTTP to Azure Government; isolated from program DLP tiers; CoE staff only |
+| **Default (catch-all)** | Tenant Default | Automatic — no configuration required | Microsoft 365 core connectors only; everything else blocked; applies to any environment not explicitly covered |
+
+{: .important }
+> **Test must mirror Production DLP.** A connector blocked in Production but allowed in Test produces false-positive test results. DLP policy misalignment between Test and Production is a deployment risk that surfaces at go-live, not in testing. Manage Test and Production in the same environment group where possible, or through synchronized named policies where Managed Environments are unavailable.
+
+#### Base Policy + Program Overlay Model
+
+The recommended structure is a layered composition: a **base tier policy** applied to each environment group, with **program-specific exception policies** applied on top for connectors needed by one program that are not in the standard tier.
+
+```
+Tenant Default  (most restrictive — automatic catch-all for unlisted environments)
+    │
+    ├── Developer Group Policy     →  Individual Dev environments
+    ├── Sandbox Group Policy       →  Program Sandbox environments (if Managed)
+    ├── Development Group Policy   →  Program Dev environments
+    ├── Test/Prod Group Policy     →  Program Test + Prod (identical policy, same group)
+    ├── Enterprise Group Policy    →  Shared Services + ENTERPRISE-PROD
+    └── Platform Group Policy      →  CoE-Admin + CoE-Dev
+                │
+                └── Program Exception Policy (named, 90-day, ISSO approved)
+                    → One specific connector approved for one program's specific environment
+```
+
+**Program exceptions are the pressure valve.** When a program needs a connector outside the standard tier for their environment type, they submit a connector approval request (see [DLP Strategy — Connector Request Process](../dlp-strategy/)) and receive a named exception policy targeting their specific environment. Exceptions are time-limited, ISSO-reviewed, and tracked in the Exception Register.
 
 {: .warning }
 > **IL5 validation required:** Not all Microsoft 365 connectors route data through the GCC High or DoD boundary. Validate each connector's data residency documentation against your ATO boundary before approving at any tier.
 
-For the full DLP governance model — including connector approval workflow, custom connector requirements, HTTP trigger policy, premium connector governance, and operational recommendations — see the dedicated [DLP Strategy](../dlp-strategy/) page.
+For the full DLP governance model — connector approval workflow, custom connector requirements, HTTP trigger policy, premium connector governance, and connector catalog management — see the dedicated [DLP Strategy](../dlp-strategy/) page.
 
 ### 3.5 Identity and Access Management
 
-**Entra ID Groups Strategy:**
+**Entra ID Groups — Two-Category Model**
+
+Power Platform Entra ID groups fall into two distinct categories with different purposes, different naming patterns, and different membership models. Mixing them produces an unmaintainable group structure at scale.
+
+- **Category 1 — Environment Access Groups:** Control which users can enter an environment. These are assigned in the Power Platform admin center and enforced by Managed Environment sharing restrictions.
+- **Category 2 — Dataverse Security Role Groups:** Back Dataverse Owner Teams inside a specific environment. These determine what a user can see and do within Dataverse. They are configured inside the environment, not at the admin center level.
+
+A user requires membership in both a Category 1 group (to access the environment) and a Category 2 group (to hold appropriate Dataverse permissions). A user in Category 1 only has no Dataverse role and cannot open any app. A user in Category 2 only cannot enter the environment.
 
 For step-by-step implementation — how to assign groups to environments, configure group-backed Dataverse teams, and apply the access matrix across Dev/Test/Prod tiers — see [Environment Access & RBAC](../environment-access/).
 
-| Group Type | Naming Pattern | Purpose |
-|---|---|---|
-| Environment Owners | `PP-{ENV}-Owners` | Manage environment settings; assigned Program Admin role |
-| Environment Users | `PP-{ENV}-Users` | All licensed users of an environment |
-| Developers | `PP-{ENV}-Developers` | Contributor role in Dev only |
-| App Users | `PP-{ENV}-{AppCode}-Users` | End-user role for specific apps |
-| Support | `PP-{ENV}-Support` | Support role in Test and Prod |
-| Pipeline SP | N/A — service principal | System Administrator for pipeline deployments only |
+#### Category 1: Environment Access Groups
 
-**Never use mail-enabled distribution lists for Power Platform access.** Dynamic security groups based on HR system attributes (department, command, position) are preferred for end-user populations — they self-maintain through personnel transitions.
+Every Power Platform environment has a single **environment security group** configured in the Power Platform admin center (Environment Settings → Security group). This is the gate — only members of this group can be added as users to the environment at all. It carries no Dataverse role. It is purely an access control boundary.
+
+All role-based groups (Owners, Devs, Support) must have their members also present in this gate group — either through direct membership or by nesting the role groups inside it.
+
+| Group Type | Pattern | Example | Purpose |
+|---|---|---|---|
+| **Environment Gate** | `PP-{PGM}-{TYPE}` | `PP-SYSTRK-PROD` | **Assigned in the admin center as the environment's security group. No role. Controls who can be added to the environment at all.** |
+| Environment Owners | `PP-{PGM}-{TYPE}-Owners` | `PP-SYSTRK-PROD-Owners` | Environment admin; Program Admin Dataverse role; CoE + Program PM only |
+| Environment Users | `PP-{PGM}-{TYPE}-Users` | `PP-SYSTRK-PROD-Users` | Standard environment users; Managed Environment sharing target |
+| Developers | `PP-{PGM}-DEV-Devs` | `PP-SYSTRK-DEV-Devs` | Dev environment only; Contributor Dataverse role; never assigned to Test or Prod |
+| Support | `PP-{PGM}-{TYPE}-Support` | `PP-SYSTRK-PROD-Support` | L2 support access to Test and Prod; read-only Dataverse role |
+
+**Recommended structure:** Nest the role groups inside the gate group so that membership is maintained in one place. Adding a user to `PP-SYSTRK-PROD-Users` automatically satisfies the gate. Removing them from all role groups automatically removes gate access.
+
+```
+PP-SYSTRK-PROD  (gate — assigned to environment in admin center)
+  ├── PP-SYSTRK-PROD-Owners   (nested)
+  ├── PP-SYSTRK-PROD-Users    (nested)
+  └── PP-SYSTRK-PROD-Support  (nested)
+
+PP-SYSTRK-DEV  (gate — assigned to Dev environment)
+  ├── PP-SYSTRK-DEV-Owners    (nested)
+  ├── PP-SYSTRK-DEV-Users     (nested)
+  └── PP-SYSTRK-DEV-Devs      (nested)
+```
+
+> **`{PGM}` = program code (SYSTRK, TRNMGR). `{TYPE}` = DEV, TEST, PROD, SANDBOX.** The gate group has no role suffix — it is the environment identifier only. The `-Owners` group must stay small — Program PM, one technical lead, CoE service account. Maximum 5–7 members.
+
+#### Category 2: Dataverse Security Role Groups
+
+These groups back Dataverse Owner Teams. The team's membership source is the Entra ID group — changes in Entra propagate to Dataverse automatically (subject to sync latency; allow up to 15 minutes).
+
+| Group Type | Pattern | Example | Purpose |
+|---|---|---|---|
+| App End Users | `PP-{PGM}-{TYPE}-{AppCode}-Users` | `PP-SYSTRK-PROD-APP1-Users` | Standard end-user security role for a specific app |
+| App Admins | `PP-{PGM}-{TYPE}-{AppCode}-Admins` | `PP-SYSTRK-PROD-APP1-Admins` | Admin security role for a specific app (dual app pattern §4.8) |
+| ISSO Reviewer | `PP-{PGM}-{TYPE}-ISSO` | `PP-SYSTRK-PROD-ISSO` | ISSO read + review fields access; no write on operational records |
+| Read Only | `PP-{PGM}-{TYPE}-ReadOnly` | `PP-SYSTRK-PROD-ReadOnly` | Auditors, reporting consumers, executive dashboard access |
+
+For programs with a single app, omit `{AppCode}`. For programs with multiple apps in one environment, each app requires its own user and admin groups — this enforces the dual application pattern and prevents accidental cross-app access through a single overpermissioned team.
+
+#### Platform / Tenant-Level Groups
+
+Maintained by the Platform CoE. These apply across multiple environments or at the tenant level. Program teams have no membership in these groups — CoE access to program environments is through these groups, not through program-specific groups.
+
+| Group Type | Pattern | Purpose |
+|---|---|---|
+| CoE Administrators | `PP-Platform-CoE-Admins` | Full tenant admin; Power Platform tenant administrator role; maximum 3–5 people |
+| CoE Engineers | `PP-Platform-CoE-Engineers` | Environment admin access across all environments; standard Dataverse access for support |
+| Tenant ISSO Reviewers | `PP-Platform-ISSO` | Read access to all production environments for ATO evidence and audit |
+| Tenant Read-Only | `PP-Platform-ReadOnly` | Executive dashboard and reporting consumers; no write access anywhere |
+| DLP Administrators | `PP-Platform-DLP-Admins` | Power Platform DLP policy management; scoped to Platform CoE only |
+
+#### Membership Model: Dynamic vs. Manual
+
+| Group | Type | Auto-membership Rule / Rationale |
+|---|---|---|
+| `{PGM}-{TYPE}` (gate) | **Derived from nested groups** | Do not manage membership directly. Nest the role groups inside it — membership is inherited. The gate reflects who holds a role, not a separate list to maintain. |
+| `{PGM}-PROD-Users` | **Dynamic (preferred)** | Drive from HR system: `user.department -eq "{COMMAND}"` + job title or extension attribute matching the program. Self-maintaining through PCS/transfers. |
+| `{PGM}-DEV-Users` | **Manual** | Dev access is deliberate. Not all program users need Dev environment access. Onboarding action by Platform Champion. |
+| `{PGM}-{TYPE}-Owners` | **Manual** | Always small, named individuals. Automatic assignment creates privilege escalation risk. |
+| `{PGM}-DEV-Devs` | **Manual** | Named developers only. Program Platform Champion adds on assignment, removes on departure. |
+| `{PGM}-{TYPE}-{AppCode}-Users` | **Dynamic (preferred)** | HR attribute or Entra extension attribute set at onboarding: `user.extensionAttribute1 -eq "{PGM}-USER"`. |
+| `{PGM}-{TYPE}-{AppCode}-Admins` | **Manual** | Named individuals accountable for data management. Never automatic. |
+| `{PGM}-{TYPE}-ISSO` | **Manual** | Organizational designation. ISSO assignments are not derived from HR data. |
+| `PP-Platform-*` | **Manual** | Platform team is small. Every member is a named individual accountable for tenant-level actions. |
+
+**Automatic access guidance by persona:**
+
+- **New developers assigned to a program** — Platform Champion manually adds to `{PGM}-DEV-Devs` and `{PGM}-DEV-Users` during onboarding. No automatic assignment at the Dev tier.
+- **Mission personnel in a command** — receive Prod `-Users` access via dynamic membership if HR attributes are reliable. If HR data quality is poor (a common DoD reality), use manual with quarterly access review over unreliable dynamic rules.
+- **Departing personnel** — dynamic groups shed members automatically on HR attribute change. Manual groups require explicit offboarding action. Document group membership removal in the offboarding checklist for every program.
+- **CoE engineers** — never automatically added to program groups. CoE accesses program environments through `PP-Platform-CoE-Engineers`, which is granted a support-level role across all environments via a separate access policy.
+- **ISSOs** — manually added to `PP-Platform-ISSO` for tenant-wide read access and to `{PGM}-{TYPE}-ISSO` for program-specific security review access. Access is not inherited — it is assigned per ISSO per program scope.
+
+#### Organizational Recommendations
+
+1. **Prefix all Power Platform groups with `PP-`.** In a large DoD tenant with thousands of Entra groups from Active Directory sync, Teams, SharePoint, and other services, a consistent prefix makes Power Platform groups immediately identifiable and filterable.
+
+2. **One group, one role, one environment.** Never create a catch-all `{PGM}-All` group and assign it multiple roles or share it across environments. Flat membership produces unauditable access and accumulates stale members through personnel transitions.
+
+3. **Register every group in the Environment Register.** Each Entra group associated with an environment is a documented record attribute (see §2.5). The environment decommission workflow must include deletion of all associated Entra groups — not just the Power Platform environment.
+
+4. **Review `-Owners` and `-Admins` group membership quarterly.** These are the highest-privilege groups in any program. They are the most likely to accumulate stale membership through PCS cycles. The quarterly review is a CoE responsibility, not the program's.
+
+5. **Maximum two levels of group nesting; document any nested relationship.** Group nesting is valid for large organizations but creates audit opacity — the effective membership of a Dataverse team may not be obvious if three levels of nesting are in play. Document every nested group relationship in the Environment Register.
+
+6. **Never assign environment access to individual users directly.** All access is via group membership. Direct user assignment to environments bypasses the group-level audit trail and creates offboarding gaps that will be missed.
+
+**Never use mail-enabled distribution lists for Power Platform access.** Distribution lists are not security principals — they cannot be evaluated by Conditional Access or enforced by Managed Environment sharing restrictions. Any existing DL-based access must be migrated to security groups before Managed Environments are activated.
 
 **Service Principals (Pipeline Automation):**
 - One service principal per environment tier (Dev, Test, Prod)
@@ -633,7 +890,7 @@ See the [LP-ALM Methodology](/methodology/) for the full reference.
 
 ### 5.2 Azure DevOps Integration
 
-**GCC High requires self-hosted agents.** Microsoft-hosted agents are not available in the GCC High ADO cloud. Every organization operating in GCC High must maintain a pool of self-hosted build agents.
+**GCC High requires self-hosted agents.** Microsoft-hosted agents are not available in the GCC High ADO cloud. Every organization operating in GCC High must maintain a pool of self-hosted build agents. For the full Azure DevOps + agent architecture, Key Vault integration, and monitoring strategy, see [Azure Integration Strategy](../azure-integration/).
 
 **Self-hosted agent requirements:**
 - Windows Server 2022 recommended (PAC CLI requires .NET)
@@ -934,7 +1191,9 @@ All naming follows the pattern defined in LP-ALM Section 4 with the following Do
 | Application | `{PGM} {Friendly Name}` | `SYSTRK Ticket Tracker` |
 | Flow | `{PGM} - {Trigger} - {Action}` | `SYSTRK - New Ticket - Notify Approver` |
 | ADO Project | `{CMD}-{PGM}` | `FORSCOM-SYSTRK` |
-| Entra Group | `PP-{ENV}-{ROLE}` | `PP-SYSTRK-PROD-Users` |
+| Entra Group (env access) | `PP-{PGM}-{TYPE}-{ROLE}` | `PP-SYSTRK-PROD-Users` |
+| Entra Group (Dataverse role) | `PP-{PGM}-{TYPE}-{AppCode}-{ROLE}` | `PP-SYSTRK-PROD-APP1-Admins` |
+| Entra Group (platform) | `PP-Platform-{ROLE}` | `PP-Platform-CoE-Engineers` |
 | Service Principal | `sp-pp-{env}-{type}` | `sp-pp-systrk-prod-pipeline` |
 | Table | `{prefix}_TableName` | `systrk_SystemProfile` |
 | Column | `{prefix}_columnname` | `systrk_systemstatus` |

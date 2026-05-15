@@ -1,7 +1,7 @@
 ---
 layout: default
 title: "DLP Strategy"
-nav_order: 5
+nav_order: 7
 ---
 
 # Data Loss Prevention Strategy
@@ -90,7 +90,7 @@ Placing two connectors in the same group (both Business, or both Non-Business) a
 
 ## 2. Environment-Type DLP Policies
 
-The base tenant policy is the floor. Environment-type policies refine that baseline for specific environment categories. These are applied via Managed Environment groupings — environments are assigned to a group, and the group receives the appropriate DLP overlay.
+The base tenant policy is the floor. Environment-type policies refine that baseline for specific environment categories. For Managed Environments, these are applied via environment groups — environments are assigned to a group and automatically inherit the group's DLP policy. For unmanaged environments (sandboxes, individual dev, and any environment where Managed status cannot be licensed), the same tier policies are applied as named environment policies that explicitly list the environment by name. See [Enterprise Strategy §2.9](../enterprise-strategy/#29-managed-environments) for the Managed vs. Unmanaged prioritization model and compensating controls.
 
 The principle: **policies become more restrictive as data sensitivity and operational criticality increase toward production.** A developer environment may allow additional approved connectors for productivity. A production mission system environment should be the most locked-down tier.
 

@@ -1,7 +1,7 @@
 ---
 layout: default
 title: JavaScript & Code Security
-nav_order: 9
+nav_order: 11
 permalink: /code-security/
 ---
 
@@ -115,7 +115,7 @@ JavaScript must be deployed as part of a **managed solution**, not copied manual
 
 ### 6. Use government-approved tooling
 
-In IL5, all tooling in the pipeline — including scanners, agents, and artifact stores — must be authorized for the DoD boundary. The DoD DevSecOps model emphasizes automated testing, control gates, guardrails, and continuous monitoring as part of delivery. See [DoD Enterprise DevSecOps Fundamentals](https://dodcio.defense.gov/Portals/0/Documents/Library/DoD%20Enterprise%20DevSecOps%20Fundamentals%20v2.5.pdf) for the current reference model.
+In IL5, all tooling in the pipeline — including scanners, agents, and artifact stores — must be authorized for the DoD boundary. The DoD DevSecOps model emphasizes automated testing, control gates, guardrails, and continuous monitoring as part of delivery. See [DoD Enterprise DevSecOps Fundamentals](https://dodcio.defense.gov/Portals/0/Documents/Library/DoD%20Enterprise%20DevSecOps%20Fundamentals%20v2.5.pdf) for the current reference model. For self-hosted agent architecture, pipeline service account model, and secure configuration management in Azure Government, see [Azure Integration Strategy §6](../azure-integration/#6-cicd-and-devsecops-integration).
 
 ---
 

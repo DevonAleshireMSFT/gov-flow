@@ -1,7 +1,7 @@
 ---
 layout: default
 title: AI Workload Security
-nav_order: 10
+nav_order: 12
 has_children: true
 permalink: /ai-workloads/
 ---
