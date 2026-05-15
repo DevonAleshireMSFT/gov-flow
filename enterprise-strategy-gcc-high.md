@@ -186,9 +186,9 @@ Individual developer environments follow a distinct pattern to distinguish them 
 
 | Example | Developer |
 |---|---|
-| `daleshire-Dev` | Devon Aleshire |
 | `jsmith-Dev` | James Smith |
 | `mlopez-Dev` | Maria Lopez |
+| `rwilliams-Dev` | Robert Williams |
 
 **Rules:**
 - Use the developer's network/email alias (characters before `@`), lowercased.
@@ -474,20 +474,109 @@ For the full DLP governance model — including connector approval workflow, cus
 
 ### 3.5 Identity and Access Management
 
-**Entra ID Groups Strategy:**
+**Entra ID Groups — Two-Category Model**
+
+Power Platform Entra ID groups fall into two distinct categories with different purposes, different naming patterns, and different membership models. Mixing them produces an unmaintainable group structure at scale.
+
+- **Category 1 — Environment Access Groups:** Control which users can enter an environment. These are assigned in the Power Platform admin center and enforced by Managed Environment sharing restrictions.
+- **Category 2 — Dataverse Security Role Groups:** Back Dataverse Owner Teams inside a specific environment. These determine what a user can see and do within Dataverse. They are configured inside the environment, not at the admin center level.
+
+A user requires membership in both a Category 1 group (to access the environment) and a Category 2 group (to hold appropriate Dataverse permissions). A user in Category 1 only has no Dataverse role and cannot open any app. A user in Category 2 only cannot enter the environment.
 
 For step-by-step implementation — how to assign groups to environments, configure group-backed Dataverse teams, and apply the access matrix across Dev/Test/Prod tiers — see [Environment Access & RBAC](../environment-access/).
 
-| Group Type | Naming Pattern | Purpose |
-|---|---|---|
-| Environment Owners | `PP-{ENV}-Owners` | Manage environment settings; assigned Program Admin role |
-| Environment Users | `PP-{ENV}-Users` | All licensed users of an environment |
-| Developers | `PP-{ENV}-Developers` | Contributor role in Dev only |
-| App Users | `PP-{ENV}-{AppCode}-Users` | End-user role for specific apps |
-| Support | `PP-{ENV}-Support` | Support role in Test and Prod |
-| Pipeline SP | N/A — service principal | System Administrator for pipeline deployments only |
+#### Category 1: Environment Access Groups
 
-**Never use mail-enabled distribution lists for Power Platform access.** Dynamic security groups based on HR system attributes (department, command, position) are preferred for end-user populations — they self-maintain through personnel transitions.
+Every Power Platform environment has a single **environment security group** configured in the Power Platform admin center (Environment Settings → Security group). This is the gate — only members of this group can be added as users to the environment at all. It carries no Dataverse role. It is purely an access control boundary.
+
+All role-based groups (Owners, Devs, Support) must have their members also present in this gate group — either through direct membership or by nesting the role groups inside it.
+
+| Group Type | Pattern | Example | Purpose |
+|---|---|---|---|
+| **Environment Gate** | `PP-{PGM}-{TYPE}` | `PP-SYSTRK-PROD` | **Assigned in the admin center as the environment's security group. No role. Controls who can be added to the environment at all.** |
+| Environment Owners | `PP-{PGM}-{TYPE}-Owners` | `PP-SYSTRK-PROD-Owners` | Environment admin; Program Admin Dataverse role; CoE + Program PM only |
+| Environment Users | `PP-{PGM}-{TYPE}-Users` | `PP-SYSTRK-PROD-Users` | Standard environment users; Managed Environment sharing target |
+| Developers | `PP-{PGM}-DEV-Devs` | `PP-SYSTRK-DEV-Devs` | Dev environment only; Contributor Dataverse role; never assigned to Test or Prod |
+| Support | `PP-{PGM}-{TYPE}-Support` | `PP-SYSTRK-PROD-Support` | L2 support access to Test and Prod; read-only Dataverse role |
+
+**Recommended structure:** Nest the role groups inside the gate group so that membership is maintained in one place. Adding a user to `PP-SYSTRK-PROD-Users` automatically satisfies the gate. Removing them from all role groups automatically removes gate access.
+
+```
+PP-SYSTRK-PROD  (gate — assigned to environment in admin center)
+  ├── PP-SYSTRK-PROD-Owners   (nested)
+  ├── PP-SYSTRK-PROD-Users    (nested)
+  └── PP-SYSTRK-PROD-Support  (nested)
+
+PP-SYSTRK-DEV  (gate — assigned to Dev environment)
+  ├── PP-SYSTRK-DEV-Owners    (nested)
+  ├── PP-SYSTRK-DEV-Users     (nested)
+  └── PP-SYSTRK-DEV-Devs      (nested)
+```
+
+> **`{PGM}` = program code (SYSTRK, TRNMGR). `{TYPE}` = DEV, TEST, PROD, SANDBOX.** The gate group has no role suffix — it is the environment identifier only. The `-Owners` group must stay small — Program PM, one technical lead, CoE service account. Maximum 5–7 members.
+
+#### Category 2: Dataverse Security Role Groups
+
+These groups back Dataverse Owner Teams. The team's membership source is the Entra ID group — changes in Entra propagate to Dataverse automatically (subject to sync latency; allow up to 15 minutes).
+
+| Group Type | Pattern | Example | Purpose |
+|---|---|---|---|
+| App End Users | `PP-{PGM}-{TYPE}-{AppCode}-Users` | `PP-SYSTRK-PROD-APP1-Users` | Standard end-user security role for a specific app |
+| App Admins | `PP-{PGM}-{TYPE}-{AppCode}-Admins` | `PP-SYSTRK-PROD-APP1-Admins` | Admin security role for a specific app (dual app pattern §4.8) |
+| ISSO Reviewer | `PP-{PGM}-{TYPE}-ISSO` | `PP-SYSTRK-PROD-ISSO` | ISSO read + review fields access; no write on operational records |
+| Read Only | `PP-{PGM}-{TYPE}-ReadOnly` | `PP-SYSTRK-PROD-ReadOnly` | Auditors, reporting consumers, executive dashboard access |
+
+For programs with a single app, omit `{AppCode}`. For programs with multiple apps in one environment, each app requires its own user and admin groups — this enforces the dual application pattern and prevents accidental cross-app access through a single overpermissioned team.
+
+#### Platform / Tenant-Level Groups
+
+Maintained by the Platform CoE. These apply across multiple environments or at the tenant level. Program teams have no membership in these groups — CoE access to program environments is through these groups, not through program-specific groups.
+
+| Group Type | Pattern | Purpose |
+|---|---|---|
+| CoE Administrators | `PP-Platform-CoE-Admins` | Full tenant admin; Power Platform tenant administrator role; maximum 3–5 people |
+| CoE Engineers | `PP-Platform-CoE-Engineers` | Environment admin access across all environments; standard Dataverse access for support |
+| Tenant ISSO Reviewers | `PP-Platform-ISSO` | Read access to all production environments for ATO evidence and audit |
+| Tenant Read-Only | `PP-Platform-ReadOnly` | Executive dashboard and reporting consumers; no write access anywhere |
+| DLP Administrators | `PP-Platform-DLP-Admins` | Power Platform DLP policy management; scoped to Platform CoE only |
+
+#### Membership Model: Dynamic vs. Manual
+
+| Group | Type | Auto-membership Rule / Rationale |
+|---|---|---|
+| `{PGM}-{TYPE}` (gate) | **Derived from nested groups** | Do not manage membership directly. Nest the role groups inside it — membership is inherited. The gate reflects who holds a role, not a separate list to maintain. |
+| `{PGM}-PROD-Users` | **Dynamic (preferred)** | Drive from HR system: `user.department -eq "{COMMAND}"` + job title or extension attribute matching the program. Self-maintaining through PCS/transfers. |
+| `{PGM}-DEV-Users` | **Manual** | Dev access is deliberate. Not all program users need Dev environment access. Onboarding action by Platform Champion. |
+| `{PGM}-{TYPE}-Owners` | **Manual** | Always small, named individuals. Automatic assignment creates privilege escalation risk. |
+| `{PGM}-DEV-Devs` | **Manual** | Named developers only. Program Platform Champion adds on assignment, removes on departure. |
+| `{PGM}-{TYPE}-{AppCode}-Users` | **Dynamic (preferred)** | HR attribute or Entra extension attribute set at onboarding: `user.extensionAttribute1 -eq "{PGM}-USER"`. |
+| `{PGM}-{TYPE}-{AppCode}-Admins` | **Manual** | Named individuals accountable for data management. Never automatic. |
+| `{PGM}-{TYPE}-ISSO` | **Manual** | Organizational designation. ISSO assignments are not derived from HR data. |
+| `PP-Platform-*` | **Manual** | Platform team is small. Every member is a named individual accountable for tenant-level actions. |
+
+**Automatic access guidance by persona:**
+
+- **New developers assigned to a program** — Platform Champion manually adds to `{PGM}-DEV-Devs` and `{PGM}-DEV-Users` during onboarding. No automatic assignment at the Dev tier.
+- **Mission personnel in a command** — receive Prod `-Users` access via dynamic membership if HR attributes are reliable. If HR data quality is poor (a common DoD reality), use manual with quarterly access review over unreliable dynamic rules.
+- **Departing personnel** — dynamic groups shed members automatically on HR attribute change. Manual groups require explicit offboarding action. Document group membership removal in the offboarding checklist for every program.
+- **CoE engineers** — never automatically added to program groups. CoE accesses program environments through `PP-Platform-CoE-Engineers`, which is granted a support-level role across all environments via a separate access policy.
+- **ISSOs** — manually added to `PP-Platform-ISSO` for tenant-wide read access and to `{PGM}-{TYPE}-ISSO` for program-specific security review access. Access is not inherited — it is assigned per ISSO per program scope.
+
+#### Organizational Recommendations
+
+1. **Prefix all Power Platform groups with `PP-`.** In a large DoD tenant with thousands of Entra groups from Active Directory sync, Teams, SharePoint, and other services, a consistent prefix makes Power Platform groups immediately identifiable and filterable.
+
+2. **One group, one role, one environment.** Never create a catch-all `{PGM}-All` group and assign it multiple roles or share it across environments. Flat membership produces unauditable access and accumulates stale members through personnel transitions.
+
+3. **Register every group in the Environment Register.** Each Entra group associated with an environment is a documented record attribute (see §2.5). The environment decommission workflow must include deletion of all associated Entra groups — not just the Power Platform environment.
+
+4. **Review `-Owners` and `-Admins` group membership quarterly.** These are the highest-privilege groups in any program. They are the most likely to accumulate stale membership through PCS cycles. The quarterly review is a CoE responsibility, not the program's.
+
+5. **Maximum two levels of group nesting; document any nested relationship.** Group nesting is valid for large organizations but creates audit opacity — the effective membership of a Dataverse team may not be obvious if three levels of nesting are in play. Document every nested group relationship in the Environment Register.
+
+6. **Never assign environment access to individual users directly.** All access is via group membership. Direct user assignment to environments bypasses the group-level audit trail and creates offboarding gaps that will be missed.
+
+**Never use mail-enabled distribution lists for Power Platform access.** Distribution lists are not security principals — they cannot be evaluated by Conditional Access or enforced by Managed Environment sharing restrictions. Any existing DL-based access must be migrated to security groups before Managed Environments are activated.
 
 **Service Principals (Pipeline Automation):**
 - One service principal per environment tier (Dev, Test, Prod)
@@ -1016,7 +1105,9 @@ All naming follows the pattern defined in LP-ALM Section 4 with the following Do
 | Application | `{PGM} {Friendly Name}` | `SYSTRK Ticket Tracker` |
 | Flow | `{PGM} - {Trigger} - {Action}` | `SYSTRK - New Ticket - Notify Approver` |
 | ADO Project | `{CMD}-{PGM}` | `FORSCOM-SYSTRK` |
-| Entra Group | `PP-{ENV}-{ROLE}` | `PP-SYSTRK-PROD-Users` |
+| Entra Group (env access) | `PP-{PGM}-{TYPE}-{ROLE}` | `PP-SYSTRK-PROD-Users` |
+| Entra Group (Dataverse role) | `PP-{PGM}-{TYPE}-{AppCode}-{ROLE}` | `PP-SYSTRK-PROD-APP1-Admins` |
+| Entra Group (platform) | `PP-Platform-{ROLE}` | `PP-Platform-CoE-Engineers` |
 | Service Principal | `sp-pp-{env}-{type}` | `sp-pp-systrk-prod-pipeline` |
 | Table | `{prefix}_TableName` | `systrk_SystemProfile` |
 | Column | `{prefix}_columnname` | `systrk_systemstatus` |
